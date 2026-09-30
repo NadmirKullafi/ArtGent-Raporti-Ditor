@@ -1,0 +1,1666 @@
+<!doctype html>
+<html lang="sq">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#1D6A53">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Raporti Ditor">
+<title>Raporti Ditor ArtGent</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='12' fill='%231D6A53'/%3E%3Cpath d='M20 16h24v6H20zM20 28h24v4H20zM20 38h16v4H20z' fill='%23fff'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=IBM+Plex+Mono:wght@400;500&family=Public+Sans:wght@400;500;600;700&display=swap">
+<style>
+/* Layout: workshop job ticket. The form sits on the left, a live paper ticket on the right mirrors the printed template; the archive groups reports by day. */
+:root{
+  --bg:#ECEEE9; --surface:#FBFCFA; --field:#F3F5F1; --ink:#18201D; --muted:#5B6862;
+  --line:#D2D8D2; --line-strong:#B4BEB7;
+  --accent:#1D6A53; --accent-hover:#145240; --on-accent:#FFFFFF; --accent-soft:#DCEDE5;
+  --blank:#8F5A0E; --blank-bg:#F8E9CC;
+  --bad:#B23A2E; --on-bad:#FFFFFF; --bad-bg:#F8E2DE; --ok:#2B7549; --ok-bg:#DDEEE3;
+  --paper:#FFFFFF; --shadow:0 1px 2px rgba(24,32,29,.06),0 10px 28px rgba(24,32,29,.09);
+  --f-display:"Barlow Condensed","Arial Narrow",system-ui,sans-serif;
+  --f-body:"Public Sans",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  --f-mono:"IBM Plex Mono",ui-monospace,"Cascadia Mono",Consolas,monospace;
+  color-scheme:light;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#0F1311; --surface:#161C19; --field:#1D2421; --ink:#E3E9E5; --muted:#93A099;
+    --line:#2A3330; --line-strong:#3C4843;
+    --accent:#56B996; --accent-hover:#71CBA9; --on-accent:#0B1510; --accent-soft:#18322A;
+    --blank:#E6B65E; --blank-bg:#3A2D16;
+    --bad:#F08A7C; --on-bad:#1E0D0A; --bad-bg:#3A1E1A; --ok:#7FCB98; --ok-bg:#183024;
+    --paper:#1A211E; --shadow:0 1px 2px rgba(0,0,0,.4),0 10px 28px rgba(0,0,0,.35);
+    color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0F1311; --surface:#161C19; --field:#1D2421; --ink:#E3E9E5; --muted:#93A099;
+  --line:#2A3330; --line-strong:#3C4843;
+  --accent:#56B996; --accent-hover:#71CBA9; --on-accent:#0B1510; --accent-soft:#18322A;
+  --blank:#E6B65E; --blank-bg:#3A2D16;
+  --bad:#F08A7C; --on-bad:#1E0D0A; --bad-bg:#3A1E1A; --ok:#7FCB98; --ok-bg:#183024;
+  --paper:#1A211E; --shadow:0 1px 2px rgba(0,0,0,.4),0 10px 28px rgba(0,0,0,.35);
+  color-scheme:dark;
+}
+
+*,*::before,*::after{box-sizing:border-box}
+[hidden]{display:none!important}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.5 var(--f-body);-webkit-font-smoothing:antialiased;min-height:100vh}
+img{max-width:100%}
+h1,h2,h3,h4{margin:0;text-wrap:balance}
+p{margin:0}
+button{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.wrap{max-width:1180px;margin:0 auto;padding-inline:16px}
+@media (min-width:700px){.wrap{padding-inline:24px}}
+.muted{color:var(--muted)}
+
+/* Header */
+.top{position:sticky;top:0;z-index:20;background:var(--bg);border-bottom:1px solid var(--line);padding-top:env(safe-area-inset-top,0px)}
+.top .wrap{display:flex;align-items:center;justify-content:space-between;gap:10px 16px;flex-wrap:wrap;padding-block:10px}
+.brand{display:flex;align-items:baseline;gap:10px;min-width:0;flex-wrap:wrap}
+.brand-mark{font:700 26px/1 var(--f-display);letter-spacing:.06em;text-transform:uppercase}
+.brand-sub{font:600 13px/1 var(--f-body);color:var(--muted);letter-spacing:.08em;text-transform:uppercase}
+.role{font:600 11.5px/1 var(--f-body);letter-spacing:.08em;text-transform:uppercase;color:var(--accent);border:1px solid var(--accent);border-radius:99px;padding:4px 8px;align-self:center}
+.top-right{display:flex;align-items:center;gap:10px 14px;flex-wrap:wrap}
+.tabs{display:flex;gap:4px;background:var(--field);border:1px solid var(--line);border-radius:8px;padding:3px;flex-wrap:wrap}
+.tab{border:0;background:none;padding:8px 13px;border-radius:6px;font-weight:600;font-size:14px;color:var(--muted);cursor:pointer;display:inline-flex;align-items:center;gap:6px}
+.tab[aria-selected="true"]{background:var(--surface);color:var(--ink);box-shadow:0 1px 2px rgba(0,0,0,.08)}
+.tab-count{font:500 12px/1 var(--f-mono);background:var(--accent);color:var(--on-accent);border-radius:99px;padding:3px 7px}
+.tab-count:empty{display:none}
+.who{display:flex;align-items:center;gap:8px}
+.who-name{font-weight:600;font-size:14px;max-width:18ch;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
+main{padding-block:24px 48px}
+.intro{display:flex;justify-content:space-between;align-items:flex-end;gap:12px;flex-wrap:wrap;margin-bottom:18px}
+.intro h1{font:700 clamp(30px,5vw,40px)/1 var(--f-display);text-transform:uppercase;letter-spacing:.02em}
+.intro p{color:var(--muted);max-width:60ch}
+
+/* Auth */
+.auth{max-width:440px;margin:5vh auto 0;display:flex;flex-direction:column;gap:16px}
+.auth-head h1{font:700 clamp(34px,7vw,44px)/1 var(--f-display);text-transform:uppercase;letter-spacing:.02em;margin-bottom:6px}
+.auth-head p{color:var(--muted)}
+.auth-card{display:flex;flex-direction:column;gap:14px;padding:22px}
+.auth-card h2{font:700 22px/1 var(--f-display);text-transform:uppercase;letter-spacing:.05em}
+.form-msg{font-size:14px;color:var(--bad);font-weight:500}
+.form-msg:empty{display:none}
+.form-msg.ok{color:var(--ok)}
+
+/* Form layout */
+.form-grid{display:grid;grid-template-columns:minmax(0,1fr) 400px;gap:28px;align-items:start}
+@media (max-width:940px){.form-grid{grid-template-columns:minmax(0,1fr)}}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:10px;min-width:0}
+.sec{padding:20px 20px 22px;display:flex;flex-direction:column;gap:16px}
+.sec + .sec{border-top:1px solid var(--line)}
+@media (min-width:700px){.sec{padding:24px 26px 26px}}
+.sec-head{display:flex;justify-content:space-between;align-items:baseline;gap:12px;flex-wrap:wrap}
+.sec-head h2{font:700 22px/1 var(--f-display);text-transform:uppercase;letter-spacing:.05em}
+.sec-head .hint{color:var(--muted);font-size:13.5px}
+.sec-head .hint b{color:var(--ink);font-variant-numeric:tabular-nums}
+
+.edit-banner{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;background:var(--accent-soft);border-bottom:1px solid var(--line);padding:12px 20px;border-radius:10px 10px 0 0;font-weight:500}
+@media (min-width:700px){.edit-banner{padding:12px 26px}}
+
+.grid2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px 16px}
+@media (max-width:560px){.grid2{grid-template-columns:minmax(0,1fr)}}
+.field{display:flex;flex-direction:column;gap:6px;min-width:0}
+.field label,.label{font-weight:600;font-size:13.5px;letter-spacing:.01em}
+.opt{font-weight:400;color:var(--muted);font-size:12.5px;margin-left:4px}
+input:not([type="radio"]):not([type="checkbox"]),textarea,select{
+  font:inherit;font-size:16px;color:var(--ink);background:var(--field);
+  border:1px solid var(--line);border-radius:6px;padding:9px 11px;width:100%;min-width:0;
+  transition:border-color .15s,background-color .15s}
+textarea{resize:vertical;min-height:84px;line-height:1.45}
+input:hover,textarea:hover,select:hover{border-color:var(--line-strong)}
+input:focus,textarea:focus,select:focus{outline:2px solid var(--accent);outline-offset:0;border-color:var(--accent);background:var(--surface)}
+input[readonly]{background:transparent!important;border-style:dashed;outline:none!important;cursor:default}
+input::placeholder,textarea::placeholder{color:var(--muted);opacity:.75}
+[aria-invalid="true"]{border-color:var(--bad)!important;background:var(--bad-bg)!important}
+
+.entry{display:flex;flex-direction:column;gap:14px}
+.entry + .entry{border-top:1px dashed var(--line-strong);padding-top:18px}
+.entry-head{display:flex;justify-content:space-between;align-items:center}
+.entry-n{font:700 17px/1 var(--f-display);text-transform:uppercase;letter-spacing:.06em;color:var(--accent)}
+.time-row{display:flex;align-items:flex-end;gap:10px;flex-wrap:wrap}
+.time-row .field{flex:0 1 150px}
+.dash{padding-bottom:10px;color:var(--muted)}
+.hrs{margin-left:auto;align-self:flex-end;font:500 15px/1 var(--f-mono);font-variant-numeric:tabular-nums;background:var(--field);border:1px solid var(--line);border-radius:6px;padding:11px 12px;white-space:nowrap}
+.hrs.warn{color:var(--bad);border-color:var(--bad);background:var(--bad-bg)}
+@media (max-width:420px){.hrs{margin-left:0;width:100%;text-align:center}}
+
+.add{border:1px dashed var(--line-strong);background:none;border-radius:8px;padding:11px 14px;font-weight:600;color:var(--accent);cursor:pointer;text-align:left}
+.add:hover{background:var(--accent-soft);border-color:var(--accent)}
+
+.choices{display:flex;flex-wrap:wrap;gap:10px;border-radius:10px}
+.choices.invalid{outline:2px solid var(--bad);outline-offset:4px}
+.choice{position:relative;display:flex;align-items:center;gap:10px;padding:11px 14px;border:1px solid var(--line);border-radius:8px;background:var(--field);cursor:pointer;font-weight:500;user-select:none}
+.choice input{position:absolute;opacity:0;width:1px;height:1px;pointer-events:none}
+.box{width:20px;height:20px;border:2px solid var(--line-strong);border-radius:4px;display:grid;place-items:center;flex:none;background:var(--surface)}
+.choice input:checked + .box{background:var(--accent);border-color:var(--accent)}
+.choice input:checked + .box::after{content:"";width:10px;height:6px;border-left:2px solid var(--on-accent);border-bottom:2px solid var(--on-accent);transform:translateY(-1px) rotate(-45deg)}
+.choice:has(input:checked){border-color:var(--accent);background:var(--accent-soft)}
+.choice.alert input:checked + .box{background:var(--bad);border-color:var(--bad)}
+.choice.alert input:checked + .box::after{border-color:var(--on-bad)}
+.choice.alert:has(input:checked){border-color:var(--bad);background:var(--bad-bg)}
+.choice input:focus-visible + .box{outline:2px solid var(--accent);outline-offset:2px}
+.sub-block{display:flex;flex-direction:column;gap:14px}
+
+.form-foot{display:flex;justify-content:flex-end;padding:0 20px 18px}
+@media (min-width:700px){.form-foot{padding:0 26px 20px}}
+
+/* Buttons */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;font:600 15px/1 var(--f-body);padding:12px 16px;border-radius:7px;border:1px solid var(--line-strong);background:var(--surface);color:var(--ink);cursor:pointer;transition:background-color .15s,border-color .15s}
+.btn:hover{border-color:var(--ink)}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--on-accent)}
+.btn.primary:hover{background:var(--accent-hover);border-color:var(--accent-hover)}
+.btn.danger{background:var(--bad);border-color:var(--bad);color:var(--on-bad)}
+.btn.ghost{background:none;border-color:transparent}
+.btn.ghost:hover{border-color:var(--line-strong)}
+.btn.sm{padding:8px 12px;font-size:13.5px}
+.btn:disabled{opacity:.5;cursor:not-allowed}
+.danger-text{color:var(--bad)}
+.lnk{background:none;border:0;padding:2px 0;color:var(--accent);font-weight:600;cursor:pointer;text-decoration:underline;text-underline-offset:3px;text-align:left}
+.lnk.danger{color:var(--bad)}
+
+/* Ticket preview */
+.aside{position:sticky;top:calc(env(safe-area-inset-top,0px) + 84px);display:flex;flex-direction:column;gap:14px;min-width:0}
+@media (max-width:940px){.aside{position:static}}
+.ticket{background:var(--paper);border:1px solid var(--line);border-radius:4px;box-shadow:var(--shadow);padding:18px 20px 22px;position:relative;font:13.5px/1.6 var(--f-mono);min-width:0}
+.ticket::before{content:"";position:absolute;left:12px;right:12px;top:-5px;height:10px;background:radial-gradient(circle,var(--bg) 3.5px,transparent 4px) 0 0/14px 10px repeat-x}
+.t-head{display:flex;justify-content:space-between;align-items:baseline;gap:10px;flex-wrap:wrap;border-bottom:1px dashed var(--line-strong);padding-bottom:10px;margin-bottom:12px}
+.t-title{font:700 20px/1 var(--f-display);letter-spacing:.08em;text-transform:uppercase}
+.t-date{font:500 12.5px/1.2 var(--f-body);color:var(--muted)}
+.ln{white-space:pre-wrap;overflow-wrap:anywhere}
+.ln .k{color:var(--muted)}
+.ln .v.strong{font-weight:500;color:var(--accent)}
+.ln.hd{font-weight:500;letter-spacing:.08em}
+.ln.sub{color:var(--accent);font-weight:500}
+.ln.gap{height:.85em}
+.blank{color:var(--blank);background:var(--blank-bg);border-radius:2px;padding:0 3px}
+.ticket.compact{box-shadow:none;font-size:13px;padding:16px 16px 18px}
+.ticket.compact::before{display:none}
+
+.actions{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.3fr);gap:10px}
+.note{font-size:13px;color:var(--muted)}
+.note.warn{color:var(--bad)}
+.errbox{border:1px solid var(--bad);background:var(--bad-bg);border-radius:8px;padding:12px 14px;font-size:14px}
+.errbox p{font-weight:600;color:var(--bad);margin-bottom:6px}
+.errbox ul{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:2px}
+.errbox .lnk{color:var(--ink);font-weight:500}
+.saved{border:1px solid var(--ok);background:var(--ok-bg);border-radius:8px;padding:12px 14px;font-size:14px;display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
+.saved b{color:var(--ok)}
+
+/* Mobile send bar */
+.mbar{display:none}
+@media (max-width:940px){
+  body.on-form .mbar{display:flex;position:fixed;left:0;right:0;bottom:0;z-index:30;align-items:center;justify-content:space-between;gap:12px;background:var(--surface);border-top:1px solid var(--line);padding:10px 16px calc(10px + env(safe-area-inset-bottom,0px))}
+  body.on-form main{padding-bottom:96px}
+}
+.mbar-l{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;display:block}
+.mbar b{font:500 18px/1.1 var(--f-mono);font-variant-numeric:tabular-nums}
+
+/* Archive */
+.filters{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-bottom:16px}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.fchip{border:1px solid var(--line);background:var(--surface);border-radius:99px;padding:7px 13px;font-weight:600;font-size:13.5px;cursor:pointer;color:var(--muted)}
+.fchip[aria-pressed="true"]{background:var(--ink);border-color:var(--ink);color:var(--bg)}
+.filters input[type="date"],.filters select{width:auto;font-size:14px;padding:7px 10px}
+.filters input[type="search"]{flex:1 1 200px;width:auto;font-size:14px;padding:7px 10px}
+.check{display:inline-flex;align-items:center;gap:7px;font-weight:600;font-size:13.5px;cursor:pointer}
+.check input{accent-color:var(--bad);width:16px;height:16px}
+.push{margin-left:auto}
+.btn-row{display:flex;gap:8px;flex-wrap:wrap}
+@media (max-width:640px){.push{margin-left:0}}
+
+.stats{display:flex;flex-wrap:wrap;gap:8px 28px;padding:14px 18px;background:var(--surface);border:1px solid var(--line);border-radius:10px;margin-bottom:14px}
+.stat{display:flex;align-items:baseline;gap:7px;color:var(--muted);font-size:14px}
+.stat b{font:500 22px/1 var(--f-mono);color:var(--ink);font-variant-numeric:tabular-nums}
+.stat.alert b{color:var(--bad)}
+.breakdown{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;margin-bottom:22px}
+.breakdown.one{grid-template-columns:minmax(0,1fr)}
+@media (max-width:700px){.breakdown{grid-template-columns:minmax(0,1fr)}}
+.bars{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:14px 18px 16px;display:flex;flex-direction:column;gap:10px;min-width:0}
+.bars h4{font:700 15px/1 var(--f-display);text-transform:uppercase;letter-spacing:.07em;color:var(--muted)}
+.bar-row{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:3px 10px;font-size:13.5px}
+.bar-name{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.bar-val{font-family:var(--f-mono);font-variant-numeric:tabular-nums;color:var(--muted)}
+.bar-track{grid-column:1/-1;height:6px;background:var(--field);border-radius:3px;overflow:hidden}
+.bar-fill{display:block;height:100%;background:var(--accent);border-radius:3px}
+.missing{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:12px 18px;margin-bottom:14px;font-size:14px;display:flex;flex-wrap:wrap;gap:6px 8px;align-items:center}
+.missing b{margin-right:4px}
+.missing.done{color:var(--ok)}
+
+.day{margin-bottom:22px}
+.day-h{display:flex;justify-content:space-between;align-items:baseline;gap:10px;flex-wrap:wrap;padding:0 4px 8px;border-bottom:2px solid var(--ink);margin-bottom:0}
+.day-h span:first-child{font:700 19px/1.1 var(--f-display);text-transform:uppercase;letter-spacing:.05em}
+.day-meta{font-size:13px;color:var(--muted);font-variant-numeric:tabular-nums}
+.rep{border-bottom:1px solid var(--line);background:var(--surface)}
+.rep summary{list-style:none;cursor:pointer;display:grid;grid-template-columns:minmax(0,1fr) auto;gap:6px 16px;align-items:center;padding:13px 40px 13px 16px;position:relative}
+.rep summary::-webkit-details-marker{display:none}
+.rep summary::after{content:"";position:absolute;right:18px;top:50%;width:8px;height:8px;border-right:2px solid var(--muted);border-bottom:2px solid var(--muted);transform:translateY(-70%) rotate(45deg);transition:transform .15s}
+.rep[open] summary::after{transform:translateY(-30%) rotate(-135deg)}
+.rep summary:hover{background:var(--field)}
+.rep-main{display:flex;flex-direction:column;gap:2px;min-width:0}
+.rep-who{font-weight:700}
+.rep-proj{color:var(--muted);font-size:13.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.rep-issue{color:var(--bad);font-size:13.5px}
+.rep-side{display:flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:flex-end}
+.rep-hrs{font:500 15px/1 var(--f-mono);font-variant-numeric:tabular-nums;min-width:6.5em;text-align:right}
+@media (max-width:560px){.rep summary{grid-template-columns:minmax(0,1fr)}.rep-side{justify-content:flex-start}.rep-hrs{min-width:0;text-align:left}}
+.chip{font-size:12px;font-weight:600;padding:4px 9px;border-radius:99px;background:var(--field);border:1px solid var(--line);white-space:nowrap}
+.chip.bad{background:var(--bad-bg);border-color:var(--bad);color:var(--bad)}
+.chip.ok{background:var(--ok-bg);border-color:transparent;color:var(--ok)}
+.chip.accent{border-color:var(--accent);color:var(--accent);background:none}
+.rep-body{padding:4px 16px 18px;display:flex;flex-direction:column;gap:12px}
+.rep-actions{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.confirm{display:inline-flex;align-items:center;gap:8px;flex-wrap:wrap;font-weight:600;color:var(--bad);font-size:14px}
+
+.empty{background:var(--surface);border:1px dashed var(--line-strong);border-radius:10px;padding:36px 22px;text-align:center;display:flex;flex-direction:column;align-items:center;gap:10px}
+.empty h3{font:700 22px/1.1 var(--f-display);text-transform:uppercase;letter-spacing:.04em}
+.empty p{color:var(--muted);max-width:52ch}
+
+.account{margin-top:28px;background:var(--surface);border:1px solid var(--line);border-radius:10px}
+.account summary{cursor:pointer;padding:14px 18px;font-weight:600}
+.account-body{padding:0 18px 18px;display:flex;flex-direction:column;gap:10px}
+.inline-form{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.inline-form input{flex:1 1 180px;width:auto!important;font-size:15px!important;padding:8px 10px!important}
+
+/* Team */
+.team-grid{display:grid;grid-template-columns:minmax(0,380px) minmax(0,1fr);gap:24px;align-items:start}
+@media (max-width:900px){.team-grid{grid-template-columns:minmax(0,1fr)}}
+.team-grid .sec-head h2{font-size:20px}
+.pw-row{display:flex;gap:8px}
+.pw-row input{flex:1}
+.cred{border:1px solid var(--ok);background:var(--ok-bg);border-radius:8px;padding:14px 16px;display:flex;flex-direction:column;gap:6px;margin-bottom:14px}
+.cred-lines{font:13.5px/1.7 var(--f-mono);overflow-wrap:anywhere}
+.cred .btn-row{margin-top:4px}
+.member{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:10px 16px;align-items:center;padding:14px 16px;border-bottom:1px solid var(--line);background:var(--surface)}
+.member:first-child{border-radius:10px 10px 0 0}
+.member:last-child{border-radius:0 0 10px 10px;border-bottom:0}
+.member:only-child{border-radius:10px}
+.team-list{border:1px solid var(--line);border-radius:10px}
+.member.off .member-name{color:var(--muted);text-decoration:line-through}
+.member-main{display:flex;flex-direction:column;gap:2px;min-width:0}
+.member-name{font-weight:700}
+.member-email{color:var(--muted);font-size:13.5px;overflow-wrap:anywhere}
+.member-actions{display:flex;gap:8px;flex-wrap:wrap;align-items:center;justify-content:flex-end}
+.member .inline-form{grid-column:1/-1}
+@media (max-width:620px){.member{grid-template-columns:minmax(0,1fr)}.member-actions{justify-content:flex-start}}
+
+/* Toast + copy fallback */
+.toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translate(-50%,20px);background:var(--ink);color:var(--bg);padding:11px 16px;border-radius:8px;font-weight:600;font-size:14px;opacity:0;pointer-events:none;transition:opacity .2s,transform .2s;z-index:50;max-width:calc(100% - 32px);text-align:center}
+.toast.show{opacity:1;transform:translate(-50%,0)}
+@media (max-width:940px){body.on-form .toast{bottom:calc(84px + env(safe-area-inset-bottom,0px))}}
+.copybox{position:fixed;inset:0;z-index:60;background:rgba(0,0,0,.45);display:grid;place-items:center;padding:16px}
+.copybox-inner{background:var(--surface);border-radius:10px;padding:18px;width:min(560px,100%);display:flex;flex-direction:column;gap:10px}
+.copybox textarea{min-height:260px;font:13px/1.5 var(--f-mono)}
+
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{transition:none!important}}
+</style>
+</head>
+<body>
+
+<header class="top">
+  <div class="wrap">
+    <div class="brand"><span class="brand-mark">ArtGent</span><span class="brand-sub">Raporti ditor</span><span class="role" id="role-badge" hidden>Administrator</span></div>
+    <div class="top-right" id="top-right" hidden>
+      <nav class="tabs" role="tablist" aria-label="Pamjet">
+        <button class="tab" role="tab" id="tab-form" data-view="form" aria-selected="true" aria-controls="view-form">Raporti i ri</button>
+        <button class="tab" role="tab" id="tab-archive" data-view="archive" aria-selected="false" aria-controls="view-archive"><span id="tab-archive-label">Raportet e mia</span> <span class="tab-count" id="tab-count" title="Raporte sot"></span></button>
+        <button class="tab" role="tab" id="tab-team" data-view="team" aria-selected="false" aria-controls="view-team" hidden>Punëtorët</button>
+      </nav>
+      <div class="who"><span class="who-name" id="who-name"></span><button type="button" class="btn sm ghost" id="logout">Dil</button></div>
+    </div>
+  </div>
+</header>
+
+<main class="wrap">
+  <!-- ============ SIGN IN ============ -->
+  <section id="view-auth">
+    <div class="auth">
+      <div class="auth-head">
+        <h1>Raporti ditor</h1>
+        <p>Hyr me email-in dhe fjalëkalimin që të ka dhënë administratori.</p>
+      </div>
+      <div class="panel auth-card" id="auth-loading"><p class="muted" id="auth-loading-text">Po lidhet…</p></div>
+
+      <form class="panel auth-card" id="auth-login" hidden novalidate>
+        <div class="field"><label for="login-email">Email</label><input type="email" id="login-email" autocomplete="username" inputmode="email" autocapitalize="none" spellcheck="false"></div>
+        <div class="field"><label for="login-pass">Fjalëkalimi</label><input type="password" id="login-pass" autocomplete="current-password"></div>
+        <p class="form-msg" id="login-msg" role="alert"></p>
+        <button class="btn primary" type="submit" id="login-btn">Hyr</button>
+        <p class="note">Ke harruar fjalëkalimin? Kërko nga administratori të ta ndryshojë.</p>
+      </form>
+
+      <form class="panel auth-card" id="auth-setup" hidden novalidate>
+        <h2>Konfigurimi i parë</h2>
+        <p class="muted">Ende nuk ka administrator. Krijo llogarinë tënde të administratorit. Pastaj shton punëtorët nga faqja “Punëtorët”.</p>
+        <div class="field"><label for="setup-name">Emri dhe mbiemri</label><input id="setup-name" autocomplete="name"></div>
+        <div class="field"><label for="setup-email">Email</label><input type="email" id="setup-email" autocomplete="username" inputmode="email" autocapitalize="none" spellcheck="false"></div>
+        <div class="field"><label for="setup-pass">Fjalëkalimi <span class="opt">të paktën 8 shenja</span></label><input type="password" id="setup-pass" autocomplete="new-password"></div>
+        <div class="field"><label for="setup-pass2">Përsërit fjalëkalimin</label><input type="password" id="setup-pass2" autocomplete="new-password"></div>
+        <p class="form-msg" id="setup-msg" role="alert"></p>
+        <button class="btn primary" type="submit" id="setup-btn">Krijo llogarinë e administratorit</button>
+      </form>
+
+      <div class="panel auth-card" id="auth-inactive" hidden>
+        <h2>Llogaria nuk është aktive</h2>
+        <p class="muted" id="inactive-text"></p>
+        <button class="btn" type="button" id="inactive-logout">Dil</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ FORM ============ -->
+  <section id="view-form" role="tabpanel" aria-labelledby="tab-form" hidden>
+    <div class="intro">
+      <h1>Raporti ditor</h1>
+      <p>Plotësoje në fund të ditës. Raporti në anën tjetër përditësohet ndërsa shkruan.</p>
+    </div>
+
+    <div class="form-grid">
+      <form class="panel" id="report-form" novalidate autocomplete="off">
+        <div class="edit-banner" id="edit-banner" hidden>
+          <span id="edit-text"></span>
+          <button type="button" class="lnk" id="cancel-edit">Anulo ndryshimin</button>
+        </div>
+
+        <section class="sec" aria-labelledby="h-work">
+          <div class="sec-head">
+            <h2 id="h-work">Puna e ditës</h2>
+            <span class="hint">Totali: <b id="sec-total">0 orë</b></span>
+          </div>
+          <div class="grid2">
+            <div class="field"><label for="date-input">Data</label><input type="date" id="date-input"></div>
+            <div class="field"><label for="worker">Punëtori</label><input id="worker" readonly tabindex="-1"></div>
+          </div>
+          <div id="entries"></div>
+          <button type="button" class="add" id="add-entry">+ Shto një punë tjetër (projekt ose proces tjetër)</button>
+        </section>
+
+        <section class="sec" aria-labelledby="h-help">
+          <div class="sec-head"><h2 id="h-help">Punëtorë ndihmës</h2></div>
+          <div class="choices" role="radiogroup" aria-labelledby="h-help">
+            <label class="choice"><input type="radio" name="helped" value="no" id="helped-no"><span class="box"></span>Nuk ndihmova askënd</label>
+            <label class="choice"><input type="radio" name="helped" value="yes" id="helped-yes"><span class="box"></span>Kam ndihmuar</label>
+          </div>
+          <div class="sub-block" id="help-block" hidden>
+            <div id="helps"></div>
+            <button type="button" class="add" id="add-help">+ Shto një koleg tjetër</button>
+          </div>
+        </section>
+
+        <section class="sec" aria-labelledby="h-prob">
+          <div class="sec-head"><h2 id="h-prob">Problematika</h2></div>
+          <div class="choices" role="radiogroup" aria-labelledby="h-prob">
+            <label class="choice"><input type="radio" name="problem" value="none" id="problem-none"><span class="box"></span>Nuk pati probleme</label>
+            <label class="choice alert"><input type="radio" name="problem" value="yes" id="problem-yes"><span class="box"></span>Pati problem</label>
+          </div>
+          <div class="sub-block" id="prob-block" hidden>
+            <div class="field"><label for="p-project">Projekti</label><input id="p-project" data-p="project" list="dl-projects" placeholder="Në cilin projekt ndodhi"></div>
+            <div class="field"><label for="p-issue">Problemi</label><textarea id="p-issue" data-p="issue" rows="2" placeholder="p.sh. Pllaka MDF ishte me dimensione të gabuara"></textarea></div>
+            <div class="field"><label for="p-missing">Çfarë mungonte / çfarë pengoi punën <span class="opt">opsionale</span></label><textarea id="p-missing" data-p="missing" rows="2" placeholder="p.sh. Mungonin menteshat 110°, pritëm furnizimin"></textarea></div>
+            <div class="field"><label for="p-solution">Zgjidhja që i dhashë <span class="opt">opsionale</span></label><textarea id="p-solution" data-p="solution" rows="2" placeholder="p.sh. Kalova në montimin e garderobës derisa erdhi materiali"></textarea></div>
+          </div>
+        </section>
+
+        <div class="form-foot">
+          <button type="button" class="lnk danger" id="clear-form">Pastro formularin</button>
+        </div>
+      </form>
+
+      <aside class="aside" aria-label="Pamja e raportit">
+        <div class="ticket">
+          <div class="t-head"><span class="t-title">Raporti ditor</span><span class="t-date" id="t-date"></span></div>
+          <div id="ticket-lines"></div>
+        </div>
+        <div class="errbox" id="errbox" hidden></div>
+        <div class="saved" id="saved" hidden><span id="saved-text"></span><button type="button" class="lnk" id="saved-go">Shiko raportet</button></div>
+        <div class="actions">
+          <button type="button" class="btn" id="copy-btn">Kopjo tekstin</button>
+          <button type="button" class="btn primary" id="send-btn">Dërgo raportin</button>
+        </div>
+        <p class="note" id="db-note"></p>
+      </aside>
+    </div>
+  </section>
+
+  <!-- ============ ARCHIVE ============ -->
+  <section id="view-archive" role="tabpanel" aria-labelledby="tab-archive" hidden>
+    <div class="intro">
+      <h1 id="arch-title">Raportet e mia</h1>
+      <p id="arch-lead">Raportet që ke dërguar ti. I sheh vetëm ti dhe administratori.</p>
+    </div>
+    <div class="filters">
+      <div class="chips" role="group" aria-label="Periudha">
+        <button type="button" class="fchip" data-range="today">Sot</button>
+        <button type="button" class="fchip" data-range="yesterday">Dje</button>
+        <button type="button" class="fchip" data-range="week">Kjo javë</button>
+        <button type="button" class="fchip" data-range="month">Ky muaj</button>
+        <button type="button" class="fchip" data-range="all">Të gjitha</button>
+      </div>
+      <input type="date" id="f-date" aria-label="Data e caktuar">
+      <select id="f-worker" aria-label="Punëtori" hidden><option value="">Të gjithë punëtorët</option></select>
+      <label class="check"><input type="checkbox" id="f-problems"> Vetëm me probleme</label>
+      <input type="search" id="f-q" placeholder="Kërko projekt, klient, proces…" aria-label="Kërko">
+      <div class="btn-row push">
+        <button type="button" class="btn sm" id="refresh-btn">Rifresko</button>
+        <button type="button" class="btn sm" id="export-btn">Shkarko CSV</button>
+      </div>
+    </div>
+    <div id="arch-summary"></div>
+    <div id="arch-list"></div>
+
+    <details class="account" id="account">
+      <summary>Llogaria ime · ndrysho fjalëkalimin</summary>
+      <div class="account-body">
+        <p class="muted" id="account-email"></p>
+        <form class="inline-form" id="own-pw" novalidate>
+          <input type="password" id="own-pw-1" placeholder="Fjalëkalimi i ri (të paktën 8 shenja)" autocomplete="new-password" aria-label="Fjalëkalimi i ri">
+          <input type="password" id="own-pw-2" placeholder="Përsërite" autocomplete="new-password" aria-label="Përsërit fjalëkalimin">
+          <button class="btn sm primary" type="submit">Ruaj fjalëkalimin</button>
+        </form>
+        <p class="form-msg" id="own-pw-msg" role="status"></p>
+      </div>
+    </details>
+  </section>
+
+  <!-- ============ TEAM (admin) ============ -->
+  <section id="view-team" role="tabpanel" aria-labelledby="tab-team" hidden>
+    <div class="intro">
+      <h1>Punëtorët</h1>
+      <p>Krijo llogari për punëtorët. Secili hyn me email-in dhe fjalëkalimin që i jep ti, dhe sheh vetëm raportet e veta.</p>
+    </div>
+    <div class="team-grid">
+      <form class="panel sec" id="add-worker" novalidate>
+        <div class="sec-head"><h2>Shto punëtor</h2></div>
+        <div class="field"><label for="nw-name">Emri dhe mbiemri</label><input id="nw-name" autocomplete="off"></div>
+        <div class="field"><label for="nw-email">Email</label><input type="email" id="nw-email" autocomplete="off" inputmode="email" autocapitalize="none" spellcheck="false" placeholder="Email-i me të cilin do të hyjë"></div>
+        <div class="field"><label for="nw-pass">Fjalëkalimi <span class="opt">të paktën 8 shenja</span></label>
+          <div class="pw-row"><input id="nw-pass" autocomplete="new-password" spellcheck="false"><button type="button" class="btn sm" id="nw-gen">Gjenero</button></div>
+        </div>
+        <p class="form-msg" id="nw-msg" role="alert"></p>
+        <button class="btn primary" type="submit" id="nw-btn">Shto punëtorin</button>
+        <p class="note">Nuk dërgohet asnjë email. Pasi ta shtosh, jepja punëtorit adresën e faqes, email-in dhe fjalëkalimin.</p>
+      </form>
+      <div>
+        <div id="team-cred"></div>
+        <div id="team-list"></div>
+      </div>
+    </div>
+  </section>
+</main>
+
+<div class="mbar" id="mbar">
+  <div><span class="mbar-l">Totali i ditës</span><b id="mbar-total">0 orë</b></div>
+  <button type="button" class="btn primary" id="mbar-send">Dërgo raportin</button>
+</div>
+
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+<div class="copybox" id="copybox" hidden>
+  <div class="copybox-inner" role="dialog" aria-modal="true" aria-labelledby="copybox-h">
+    <strong id="copybox-h">Kopjo tekstin me dorë</strong>
+    <p class="muted">Teksti është zgjedhur. Shtyp Ctrl+C (ose mbaje shtypur në telefon dhe zgjidh Kopjo).</p>
+    <textarea id="copybox-text" readonly></textarea>
+    <button type="button" class="btn" id="copybox-close">Mbyll</button>
+  </div>
+</div>
+
+<datalist id="dl-workers"></datalist>
+<datalist id="dl-projects"></datalist>
+<datalist id="dl-clients"></datalist>
+<datalist id="dl-elements"></datalist>
+<datalist id="dl-processes"></datalist>
+
+<noscript><p class="wrap">Kjo faqe kërkon JavaScript.</p></noscript>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.2/dist/umd/supabase.js"></script>
+<script>
+(() => {
+'use strict';
+
+/* ---------- Supabase ----------
+   The publishable key is meant to be public. What each person can read or change is decided by the
+   database's row-level security: workers only their own reports, the admin all of them. */
+const SUPABASE_URL = 'https://izeswfpukhwjyeyauwbi.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_w80PdBvl3fucrKuB1FHlwA_n1xH0YeJ';
+
+/* ---------- helpers ---------- */
+const K_DRAFT = 'artgent-raport-draft', K_RANGE = 'artgent-arkiva-range';
+const lsGet = k => { try { return localStorage.getItem(k); } catch (e) { return null; } };
+const lsSet = (k, v) => { try { localStorage.setItem(k, v); } catch (e) {} };
+const lsDel = k => { try { localStorage.removeItem(k); } catch (e) {} };
+const $ = (s, r = document) => r.querySelector(s);
+const $$ = (s, r = document) => Array.from(r.querySelectorAll(s));
+const esc = s => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const str = v => v == null ? '' : String(v);
+const norm = s => str(s).normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
+const collator = new Intl.Collator('sq', {sensitivity: 'base'});
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+const DAYS = ['e Diel','e Hënë','e Martë','e Mërkurë','e Enjte','e Premte','e Shtunë'];
+const MONTHS = ['janar','shkurt','mars','prill','maj','qershor','korrik','gusht','shtator','tetor','nëntor','dhjetor'];
+const PROCESSES = ['Matje te klienti','Projektim','Prerje','Kantim','Shpim / CNC','Frezim','Zmerilim','Lyerje / Llakim','Montim në punëtori','Paketim','Transport','Montim te klienti','Riparim / Servis'];
+const ELEMENTS = ['Kuzhinë','Garderobë','Dollap','Komodinë','Krevat','Tavolinë','Karrige','Raft','Njësi TV','Mobilje banjoje','Derë','Banak','Tavolinë pune'];
+
+const iso = d => d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+const todayISO = () => iso(new Date());
+const parseISO = s => { const [y, m, d] = s.split('-').map(Number); return new Date(y, m - 1, d); };
+const addDaysISO = (s, n) => { const d = parseISO(s); d.setDate(d.getDate() + n); return iso(d); };
+const weekStartISO = () => { const d = new Date(); d.setDate(d.getDate() - ((d.getDay() + 6) % 7)); return iso(d); };
+const isISO = s => /^\d{4}-\d{2}-\d{2}$/.test(str(s));
+const fmtDate = s => { if (!isISO(s)) return ''; const [y, m, d] = s.split('-'); return `${d}/${m}/${y}`; };
+const fmtLongDate = s => { if (!isISO(s)) return ''; const d = parseISO(s); return `${DAYS[d.getDay()]}, ${d.getDate()} ${MONTHS[d.getMonth()]} ${d.getFullYear()}`; };
+
+function minutesBetween(a, b) {
+  if (!/^\d{1,2}:\d{2}/.test(a) || !/^\d{1,2}:\d{2}/.test(b)) return 0;
+  const [ah, am] = a.split(':').map(Number), [bh, bm] = b.split(':').map(Number);
+  let m = (bh * 60 + bm) - (ah * 60 + am);
+  if (m < 0) m += 1440; // turn past midnight
+  return m;
+}
+function fmtHours(min) {
+  min = Math.round(Number(min) || 0);
+  if (!min) return '0 orë';
+  const h = Math.floor(min / 60), m = min % 60;
+  if (!m) return `${h} orë`;
+  if (!h) return `${m} min`;
+  return `${h} orë ${m} min`;
+}
+const fmtHoursNum = h => `${String(Math.round(Number(h) * 100) / 100).replace('.', ',')} orë`;
+const dec = n => String(Math.round(n * 100) / 100).replace('.', ',');
+const plural = (n, one, many) => `${n} ${n === 1 ? one : many}`;
+function uuid() {
+  if (window.crypto && crypto.randomUUID) return crypto.randomUUID();
+  const b = crypto.getRandomValues(new Uint8Array(16));
+  b[6] = (b[6] & 15) | 64; b[8] = (b[8] & 63) | 128;
+  const h = [...b].map(x => x.toString(16).padStart(2, '0')).join('');
+  return `${h.slice(0, 8)}-${h.slice(8, 12)}-${h.slice(12, 16)}-${h.slice(16, 20)}-${h.slice(20)}`;
+}
+function genPassword() {
+  const abc = 'abcdefghjkmnpqrstuvwxyz23456789';
+  const b = crypto.getRandomValues(new Uint8Array(10));
+  const s = [...b].map(x => abc[x % abc.length]).join('');
+  return s.slice(0, 5) + '-' + s.slice(5);
+}
+
+/* ---------- state ---------- */
+const blankEntry = () => ({project: '', client: '', element: '', process: '', done: '', from: '', to: ''});
+const blankHelp = () => ({who: '', project: '', work: '', hours: ''});
+const blankProb = () => ({project: '', issue: '', missing: '', solution: ''});
+const freshState = (keep = {}) => ({date: keep.date || todayISO(), worker: keep.worker || '', entries: [blankEntry()], helped: null, helps: [blankHelp()], problem: '', prob: blankProb()});
+
+function normalizeState(s) {
+  s = s && typeof s === 'object' ? s : {};
+  const out = freshState();
+  out.date = isISO(s.date) ? s.date : todayISO();
+  out.worker = str(s.worker);
+  out.entries = (Array.isArray(s.entries) && s.entries.length ? s.entries : [{}]).map(e => { const b = blankEntry(); for (const k in b) b[k] = str(e && e[k]); return b; });
+  out.helped = s.helped === true ? true : s.helped === false ? false : null;
+  out.helps = (Array.isArray(s.helps) && s.helps.length ? s.helps : [{}]).map(h => { const b = blankHelp(); for (const k in b) b[k] = str(h && h[k]); return b; });
+  out.problem = s.problem === 'none' || s.problem === 'yes' ? s.problem : '';
+  const p = s.prob && typeof s.prob === 'object' ? s.prob : {};
+  for (const k in out.prob) out.prob[k] = str(p[k]);
+  return out;
+}
+const hasContent = s => s.entries.some(e => Object.values(e).some(Boolean)) || s.helped !== null || !!s.problem;
+const entryMinutes = e => minutesBetween(e.from, e.to);
+const totalMinutes = s => s.entries.reduce((a, e) => a + entryMinutes(e), 0);
+
+let sb = null;
+let me = null;                // {user_id, name, email, role, active}
+let isAdmin = false;
+let state = freshState();
+let editing = null;           // {id, uid} while editing a saved report
+let errorsShown = false;
+let saving = false;
+let pendingId = null;         // id of a new report whose save is in flight, so a retry cannot duplicate it
+let view = 'auth';
+
+let dbState = 'loading';      // loading | ready | error
+let reports = [];
+let suggestRows = [];
+let members = [];
+let todayCount = 0;
+
+let filt = {range: 'today', date: '', worker: '', problems: false, q: ''};
+const openIds = new Set();
+let confirmDel = null;
+const teamUi = {pw: null, toggle: null, cred: null};
+
+/* ---------- report text ---------- */
+function buildLines(s) {
+  const L = [];
+  L.push({h: 'RAPORTI DITOR · ArtGent'});
+  L.push({k: 'Data', v: fmtDate(s.date), blankV: '__/__/____'});
+  L.push({k: 'Punëtori', v: s.worker.trim()});
+  const multi = s.entries.length > 1;
+  s.entries.forEach((e, i) => {
+    if (multi) { L.push({gap: 1}); L.push({sub: `Puna ${i + 1}`}); }
+    L.push({k: 'Projekti', v: e.project.trim()});
+    L.push({k: 'Klienti', v: e.client.trim()});
+    L.push({k: 'Elementi/Mobilja', v: e.element.trim()});
+    L.push({k: 'Procesi', v: e.process.trim()});
+    L.push({k: 'Çfarë realizova sot', v: e.done.trim()});
+    const m = entryMinutes(e);
+    L.push({k: 'Ora', v: e.from && e.to ? `${e.from} – ${e.to}${multi && m ? ` (${fmtHours(m)})` : ''}` : '', blankV: `${e.from || '__'} – ${e.to || '__'}`});
+  });
+  if (multi) L.push({gap: 1});
+  const tm = totalMinutes(s);
+  L.push({k: multi ? 'Totali i ditës' : 'Totali', v: tm ? fmtHours(tm) : '', blankV: '__ orë', strong: 1});
+  L.push({gap: 1});
+  L.push({h: 'PUNËTORË NDIHMËS'});
+  if (s.helped === true) {
+    s.helps.forEach((h, i) => {
+      if (i) L.push({gap: 1});
+      L.push({k: 'Kam ndihmuar', v: h.who.trim()});
+      L.push({k: 'Projekti', v: h.project.trim()});
+      L.push({k: 'Puna', v: h.work.trim()});
+      L.push({k: 'Koha', v: Number(h.hours) > 0 ? fmtHoursNum(h.hours) : '', blankV: '__ orë'});
+    });
+  } else if (s.helped === false) {
+    L.push({t: 'Sot nuk kam ndihmuar askënd.'});
+  } else {
+    L.push({k: 'Kam ndihmuar', v: ''});
+  }
+  L.push({gap: 1});
+  L.push({h: 'PROBLEMATIKA'});
+  L.push({t: `${s.problem === 'none' ? '☑' : '☐'} Nuk pati probleme`});
+  L.push({t: `${s.problem === 'yes' ? '☑' : '☐'} Pati problem${s.problem === 'yes' ? ':' : ''}`});
+  if (s.problem === 'yes') {
+    L.push({k: 'Projekti', v: s.prob.project.trim()});
+    L.push({k: 'Problemi', v: s.prob.issue.trim()});
+    L.push({k: 'Çfarë mungonte / çfarë pengoi punën', v: s.prob.missing.trim()});
+    L.push({k: 'Zgjidhja që i dhashë', v: s.prob.solution.trim()});
+  }
+  return L;
+}
+function linesHTML(L) {
+  return L.map(l => {
+    if (l.gap) return '<div class="ln gap"></div>';
+    if (l.h) return `<div class="ln hd">${esc(l.h)}</div>`;
+    if (l.sub) return `<div class="ln sub">${esc(l.sub)}</div>`;
+    if (l.t) return `<div class="ln">${esc(l.t)}</div>`;
+    const v = l.v ? `<span class="v${l.strong ? ' strong' : ''}">${esc(l.v)}</span>` : `<span class="blank">${esc(l.blankV || '______')}</span>`;
+    return `<div class="ln"><span class="k">${esc(l.k)}:</span> ${v}</div>`;
+  }).join('');
+}
+function linesText(L) {
+  return L.map(l => l.gap ? '' : l.h ? l.h : l.t ? l.t : l.sub ? `— ${l.sub} —` : `${l.k}: ${l.v || '—'}`).join('\n');
+}
+const reportText = s => linesText(buildLines(s));
+
+/* ---------- form rendering ---------- */
+const form = $('#report-form');
+
+function entryHTML(e, i, n) {
+  const id = k => `e-${i}-${k}`;
+  const m = entryMinutes(e);
+  const inp = (k, extra) => `id="${id(k)}" data-e="${i}" data-k="${k}" ${extra || ''}`;
+  return `<div class="entry">
+    ${n > 1 ? `<div class="entry-head"><span class="entry-n">Puna ${i + 1}</span><button type="button" class="lnk danger" data-rm-entry="${i}">Hiqe</button></div>` : ''}
+    <div class="grid2">
+      <div class="field"><label for="${id('project')}">Projekti</label><input ${inp('project', 'list="dl-projects" placeholder="p.sh. Apartamenti në Dardani"')} value="${esc(e.project)}"></div>
+      <div class="field"><label for="${id('client')}">Klienti <span class="opt">opsionale</span></label><input ${inp('client', 'list="dl-clients" placeholder="Emri i klientit"')} value="${esc(e.client)}"></div>
+      <div class="field"><label for="${id('element')}">Elementi / Mobilja <span class="opt">opsionale</span></label><input ${inp('element', 'list="dl-elements" placeholder="p.sh. Garderobë me 3 dyer"')} value="${esc(e.element)}"></div>
+      <div class="field"><label for="${id('process')}">Procesi</label><input ${inp('process', 'list="dl-processes" placeholder="p.sh. Kantim"')} value="${esc(e.process)}"></div>
+    </div>
+    <div class="field"><label for="${id('done')}">Çfarë realizova sot</label><textarea ${inp('done', 'rows="3" placeholder="p.sh. Preva dhe kantova 14 pjesë për korpuset e poshtme"')}>${esc(e.done)}</textarea></div>
+    <div class="time-row">
+      <div class="field"><label for="${id('from')}">Ora nga</label><input type="time" step="300" ${inp('from')} value="${esc(e.from)}"></div>
+      <span class="dash" aria-hidden="true">–</span>
+      <div class="field"><label for="${id('to')}">deri</label><input type="time" step="300" ${inp('to')} value="${esc(e.to)}"></div>
+      <output class="hrs${m > 720 ? ' warn' : ''}" id="${id('total')}" title="Orët për këtë punë">${m ? fmtHours(m) : '— orë'}</output>
+    </div>
+  </div>`;
+}
+function helpHTML(h, i, n) {
+  const id = k => `h-${i}-${k}`;
+  const inp = (k, extra) => `id="${id(k)}" data-h="${i}" data-k="${k}" ${extra || ''}`;
+  return `<div class="entry">
+    ${n > 1 ? `<div class="entry-head"><span class="entry-n">Kolegu ${i + 1}</span><button type="button" class="lnk danger" data-rm-help="${i}">Hiqe</button></div>` : ''}
+    <div class="grid2">
+      <div class="field"><label for="${id('who')}">Kam ndihmuar</label><input ${inp('who', 'list="dl-workers" placeholder="Emri i kolegut"')} value="${esc(h.who)}"></div>
+      <div class="field"><label for="${id('project')}">Projekti</label><input ${inp('project', 'list="dl-projects" placeholder="Projekti ku ndihmove"')} value="${esc(h.project)}"></div>
+      <div class="field"><label for="${id('work')}">Puna</label><input ${inp('work', 'placeholder="p.sh. Montim i korpuseve"')} value="${esc(h.work)}"></div>
+      <div class="field"><label for="${id('hours')}">Koha (orë)</label><input type="number" inputmode="decimal" min="0" max="24" step="0.25" ${inp('hours', 'placeholder="p.sh. 1,5"')} value="${esc(h.hours)}"></div>
+    </div>
+  </div>`;
+}
+function renderEntries() { $('#entries').innerHTML = state.entries.map((e, i) => entryHTML(e, i, state.entries.length)).join(''); }
+function renderHelps() { $('#helps').innerHTML = state.helps.map((h, i) => helpHTML(h, i, state.helps.length)).join(''); }
+function syncHelped() {
+  $('#helped-yes').checked = state.helped === true;
+  $('#helped-no').checked = state.helped === false;
+  $('#help-block').hidden = state.helped !== true;
+}
+function syncProblem() {
+  $('#problem-none').checked = state.problem === 'none';
+  $('#problem-yes').checked = state.problem === 'yes';
+  $('#prob-block').hidden = state.problem !== 'yes';
+}
+function renderForm() {
+  $('#date-input').value = state.date;
+  $('#worker').value = state.worker;
+  renderEntries();
+  renderHelps();
+  syncHelped();
+  syncProblem();
+  $$('[data-p]').forEach(el => { el.value = state.prob[el.dataset.p] || ''; });
+  $('#edit-banner').hidden = !editing;
+  if (editing) $('#edit-text').textContent = `Po ndryshon raportin e ${state.worker || 'pa emër'} për ${fmtDate(state.date)}.`;
+  setButtons();
+}
+function refresh() {
+  $('#ticket-lines').innerHTML = linesHTML(buildLines(state).slice(1));
+  $('#t-date').textContent = fmtLongDate(state.date);
+  const tm = totalMinutes(state);
+  $('#mbar-total').textContent = fmtHours(tm);
+  $('#sec-total').textContent = fmtHours(tm);
+  state.entries.forEach((e, i) => {
+    const o = document.getElementById(`e-${i}-total`);
+    if (!o) return;
+    const m = entryMinutes(e);
+    o.textContent = m ? fmtHours(m) : '— orë';
+    o.classList.toggle('warn', m > 720);
+  });
+  if (errorsShown) showErrors(validate());
+}
+
+/* ---------- drafts (per account, on this device) ---------- */
+const draftKey = () => me ? `${K_DRAFT}:${me.user_id}` : null;
+let draftTimer = null;
+function scheduleDraft() {
+  const k = draftKey();
+  if (!k) return;
+  clearTimeout(draftTimer);
+  draftTimer = setTimeout(() => lsSet(k, JSON.stringify({state, editing})), 400);
+}
+function clearDraft() { clearTimeout(draftTimer); const k = draftKey(); if (k) lsDel(k); }
+function loadDraft() {
+  const k = draftKey();
+  if (!k) return null;
+  try { const raw = lsGet(k); return raw ? JSON.parse(raw) : null; } catch (e) { return null; }
+}
+
+/* ---------- form input ---------- */
+function onInput(ev) {
+  const t = ev.target;
+  if (t.dataset.e !== undefined) state.entries[+t.dataset.e][t.dataset.k] = t.value;
+  else if (t.dataset.h !== undefined) state.helps[+t.dataset.h][t.dataset.k] = t.value;
+  else if (t.dataset.p) state.prob[t.dataset.p] = t.value;
+  else if (t.name === 'problem') { state.problem = t.value; syncProblem(); }
+  else if (t.name === 'helped') { state.helped = t.value === 'yes'; syncHelped(); }
+  else if (t.id === 'date-input') state.date = t.value;
+  else return;
+  $('#saved').hidden = true;
+  refresh();
+  scheduleDraft();
+}
+form.addEventListener('input', onInput);
+form.addEventListener('change', onInput);
+form.addEventListener('submit', e => e.preventDefault()); // Enter never sends a report by accident
+form.addEventListener('click', e => {
+  const rmE = e.target.closest('[data-rm-entry]');
+  const rmH = e.target.closest('[data-rm-help]');
+  if (rmE) { state.entries.splice(+rmE.dataset.rmEntry, 1); renderEntries(); refresh(); scheduleDraft(); }
+  if (rmH) { state.helps.splice(+rmH.dataset.rmHelp, 1); renderHelps(); refresh(); scheduleDraft(); }
+});
+$('#add-entry').addEventListener('click', () => {
+  const prev = state.entries[state.entries.length - 1];
+  state.entries.push({...blankEntry(), from: prev && prev.to ? prev.to : ''}); // the next job usually starts when the previous one ended
+  renderEntries(); refresh(); scheduleDraft();
+  const el = document.getElementById(`e-${state.entries.length - 1}-project`);
+  if (el) el.focus();
+});
+$('#add-help').addEventListener('click', () => {
+  state.helps.push(blankHelp());
+  renderHelps(); refresh(); scheduleDraft();
+  const el = document.getElementById(`h-${state.helps.length - 1}-who`);
+  if (el) el.focus();
+});
+let clearArmed = null;
+$('#clear-form').addEventListener('click', e => {
+  const b = e.currentTarget;
+  if (!clearArmed) {
+    b.textContent = 'Po, pastroje krejt';
+    clearArmed = setTimeout(() => { b.textContent = 'Pastro formularin'; clearArmed = null; }, 4000);
+    return;
+  }
+  clearTimeout(clearArmed); clearArmed = null;
+  b.textContent = 'Pastro formularin';
+  resetForm();
+  toast('Formulari u pastrua');
+});
+function resetForm() {
+  editing = null;
+  errorsShown = false;
+  pendingId = null;
+  state = freshState({worker: me ? me.name : ''});
+  clearDraft();
+  showErrors([]);
+  renderForm(); refresh();
+}
+$('#cancel-edit').addEventListener('click', () => { resetForm(); toast('Ndryshimi u anulua'); });
+
+/* ---------- validation ---------- */
+function validate() {
+  const bad = [];
+  if (!isISO(state.date)) bad.push(['date-input', 'Data']);
+  const multi = state.entries.length > 1;
+  state.entries.forEach((e, i) => {
+    const s = multi ? ` (Puna ${i + 1})` : '';
+    if (!e.project.trim()) bad.push([`e-${i}-project`, 'Projekti' + s]);
+    if (!e.process.trim()) bad.push([`e-${i}-process`, 'Procesi' + s]);
+    if (!e.done.trim()) bad.push([`e-${i}-done`, 'Çfarë realizova sot' + s]);
+    if (!e.from) bad.push([`e-${i}-from`, 'Ora e fillimit' + s]);
+    if (!e.to) bad.push([`e-${i}-to`, 'Ora e mbarimit' + s]);
+    else if (e.from && !entryMinutes(e)) bad.push([`e-${i}-to`, 'Ora e mbarimit duhet të jetë pas fillimit' + s]);
+  });
+  if (totalMinutes(state) > 1440) bad.push([`e-${state.entries.length - 1}-to`, 'Totali kalon 24 orë, kontrollo orët']);
+  if (state.helped === null) bad.push(['helped-no', 'Punëtorë ndihmës: zgjidh një opsion']);
+  if (state.helped === true) state.helps.forEach((h, i) => {
+    const s = state.helps.length > 1 ? ` (Kolegu ${i + 1})` : '';
+    if (!h.who.trim()) bad.push([`h-${i}-who`, 'Kam ndihmuar' + s]);
+    if (!(Number(h.hours) > 0)) bad.push([`h-${i}-hours`, 'Koha e ndihmës' + s]);
+  });
+  if (!state.problem) bad.push(['problem-none', 'Problematika: zgjidh një opsion']);
+  if (state.problem === 'yes' && !state.prob.issue.trim()) bad.push(['p-issue', 'Problemi']);
+  return bad;
+}
+function showErrors(bad) {
+  $$('[aria-invalid="true"]', form).forEach(el => el.removeAttribute('aria-invalid'));
+  $$('.choices.invalid', form).forEach(el => el.classList.remove('invalid'));
+  bad.forEach(([id]) => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    if (el.type === 'radio') el.closest('.choices').classList.add('invalid');
+    else el.setAttribute('aria-invalid', 'true');
+  });
+  const box = $('#errbox');
+  if (!bad.length) { box.hidden = true; box.innerHTML = ''; return; }
+  box.hidden = false;
+  box.innerHTML = `<p>Plotëso këto para se ta dërgosh:</p><ul>${bad.map(([id, l]) => `<li><button type="button" class="lnk" data-goto="${id}">${esc(l)}</button></li>`).join('')}</ul>`;
+}
+$('#errbox').addEventListener('click', e => {
+  const b = e.target.closest('[data-goto]');
+  if (!b) return;
+  const el = document.getElementById(b.dataset.goto);
+  if (el) { el.scrollIntoView({block: 'center', behavior: 'smooth'}); el.focus({preventScroll: true}); }
+});
+
+/* ---------- save ---------- */
+function serialize(s) {
+  const entries = s.entries.map(e => ({
+    project: e.project.trim(), client: e.client.trim(), element: e.element.trim(), process: e.process.trim(),
+    done: e.done.trim(), from: e.from, to: e.to, minutes: entryMinutes(e)
+  }));
+  return {
+    date: s.date,
+    entries,
+    total_minutes: entries.reduce((a, e) => a + e.minutes, 0),
+    helped: s.helped === true,
+    helps: s.helped === true ? s.helps.map(h => ({who: h.who.trim(), project: h.project.trim(), work: h.work.trim(), hours: Number(h.hours) || 0})) : [],
+    problem: s.problem,
+    prob: s.problem === 'yes' ? {project: s.prob.project.trim(), issue: s.prob.issue.trim(), missing: s.prob.missing.trim(), solution: s.prob.solution.trim()} : null
+  };
+}
+function saveErrorMessage(e) {
+  const code = e && e.code;
+  const msg = str(e && e.message);
+  if (code === '42501' || code === 'not_allowed') return 'Nuk u ruajt: llogaria jote nuk lejohet ta bëjë këtë. Fol me administratorin.';
+  if (code === '23514') return 'Nuk u ruajt: disa vlera janë jashtë kufijve (p.sh. orët). Kontrollo formularin.';
+  if (code === 'PGRST301' || /jwt/i.test(msg)) return 'Seanca ka skaduar. Dil dhe hyr sërish.';
+  return 'Nuk u ruajt për shkak të lidhjes. Raporti mbetet këtu, provo sërish pas pak.';
+}
+async function submit() {
+  if (saving || !me) return;
+  const bad = validate();
+  errorsShown = true;
+  showErrors(bad);
+  if (bad.length) {
+    const el = document.getElementById(bad[0][0]);
+    if (el) { el.scrollIntoView({block: 'center', behavior: 'smooth'}); el.focus({preventScroll: true}); }
+    return;
+  }
+  saving = true; setButtons();
+  const payload = serialize(state);
+  const wasEditing = !!editing;
+  try {
+    if (editing) {
+      const {data, error} = await sb.from('reports').update(payload).eq('id', editing.id).select('id').maybeSingle();
+      if (error) throw error;
+      if (!data) throw {code: 'not_allowed'};
+    } else {
+      pendingId = pendingId || uuid();
+      const {error} = await sb.from('reports').insert({...payload, id: pendingId});
+      if (error && error.code !== '23505') throw error; // 23505: an earlier attempt already saved it
+    }
+    pendingId = null;
+    const who = state.worker, when = fmtDate(state.date);
+    editing = null;
+    errorsShown = false;
+    state = freshState({worker: me.name});
+    clearDraft();
+    showErrors([]);
+    renderForm(); refresh();
+    $('#saved-text').innerHTML = `<b>${wasEditing ? 'Ndryshimet u ruajtën' : 'Raporti u dërgua'}</b> · ${esc(who)}, ${esc(when)}`;
+    $('#saved').hidden = false;
+    toast(wasEditing ? 'Ndryshimet u ruajtën' : 'Raporti u dërgua');
+    window.scrollTo({top: 0, behavior: 'smooth'});
+    loadReports(); loadSuggestions(); loadTodayCount();
+  } catch (e) {
+    toast(saveErrorMessage(e), 6000);
+  } finally {
+    saving = false; setButtons();
+  }
+}
+$('#send-btn').addEventListener('click', submit);
+$('#mbar-send').addEventListener('click', submit);
+$('#saved-go').addEventListener('click', () => showView('archive'));
+
+function setButtons() {
+  const label = saving ? 'Po ruhet…' : editing ? 'Ruaj ndryshimet' : 'Dërgo raportin';
+  ['#send-btn', '#mbar-send'].forEach(s => { const b = $(s); b.textContent = label; b.disabled = saving; });
+  const note = $('#db-note');
+  note.classList.toggle('warn', dbState === 'error');
+  note.textContent = dbState === 'error'
+    ? 'Nuk ka lidhje me serverin tani. Raporti mbetet këtu si draft; provo sërish ose kopjo tekstin.'
+    : isAdmin
+      ? 'Raporti ruhet në arkivë. Punëtorët nuk i shohin raportet e njëri-tjetrit.'
+      : 'Raportin tënd e sheh vetëm ti dhe administratori. Mund ta kopjosh edhe për WhatsApp ose Viber.';
+}
+
+/* ---------- copy / download / toast ---------- */
+function copyText(text, okMsg) {
+  let p;
+  try { p = navigator.clipboard && navigator.clipboard.writeText(text); } catch (e) { p = null; }
+  if (!p) { fallbackCopy(text); return; }
+  p.then(() => toast(okMsg || 'Teksti u kopjua. Ngjite në WhatsApp ose Viber.'), () => fallbackCopy(text));
+}
+function fallbackCopy(text) {
+  const box = $('#copybox'), ta = $('#copybox-text');
+  ta.value = text;
+  box.hidden = false;
+  ta.focus(); ta.select();
+  let ok = false;
+  try { ok = document.execCommand('copy'); } catch (e) {}
+  if (ok) { box.hidden = true; toast('Teksti u kopjua'); }
+}
+$('#copybox-close').addEventListener('click', () => { $('#copybox').hidden = true; });
+$('#copy-btn').addEventListener('click', () => copyText(reportText(state)));
+
+function downloadFile(name, text, type) {
+  const url = URL.createObjectURL(new Blob([text], {type}));
+  const a = document.createElement('a');
+  a.href = url; a.download = name;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 2000);
+}
+let toastTimer = null;
+function toast(msg, ms = 2800) {
+  const t = $('#toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove('show'), ms);
+}
+
+/* ---------- views ---------- */
+function showView(v) {
+  if (v === 'team' && !isAdmin) v = 'form';
+  view = v;
+  ['auth', 'form', 'archive', 'team'].forEach(n => { $('#view-' + n).hidden = n !== v; });
+  $('#top-right').hidden = v === 'auth';
+  $$('.tab').forEach(t => t.setAttribute('aria-selected', String(t.dataset.view === v)));
+  document.body.classList.toggle('on-form', v === 'form');
+  if (v === 'archive') { renderArchive(); loadReports(); }
+  if (v === 'team') { renderTeam(); loadMembers(); }
+  window.scrollTo(0, 0);
+}
+$$('.tab').forEach(t => t.addEventListener('click', () => showView(t.dataset.view)));
+$('.tabs').addEventListener('keydown', e => {
+  if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return;
+  const tabs = $$('.tab').filter(t => !t.hidden);
+  const i = tabs.findIndex(t => t.dataset.view === view);
+  const next = tabs[(i + (e.key === 'ArrowRight' ? 1 : tabs.length - 1)) % tabs.length];
+  showView(next.dataset.view);
+  next.focus();
+});
+
+/* ---------- archive ---------- */
+function rangeStart() {
+  const t = todayISO();
+  switch (filt.range) {
+    case 'today': return t;
+    case 'yesterday': return addDaysISO(t, -1);
+    case 'week': return weekStartISO();
+    case 'month': return t.slice(0, 8) + '01';
+    case 'date': return filt.date || null;
+    default: return null;
+  }
+}
+function inRange(d) {
+  const t = todayISO();
+  switch (filt.range) {
+    case 'today': return d === t;
+    case 'yesterday': return d === addDaysISO(t, -1);
+    case 'week': { const s = weekStartISO(); return d >= s && d <= addDaysISO(s, 6); }
+    case 'month': return d.slice(0, 7) === t.slice(0, 7);
+    case 'date': return d === filt.date;
+    default: return true;
+  }
+}
+const rowFromDb = r => ({
+  id: r.id, _uid: r.user_id, _key: r.id, date: str(r.date).slice(0, 10), worker: str(r.worker),
+  entries: r.entries, totalMinutes: r.total_minutes, helped: r.helped, helps: r.helps,
+  problem: r.problem, prob: r.prob, createdAt: r.created_at
+});
+let loadSeq = 0;
+async function loadReports() {
+  if (!sb || !me) return;
+  const seq = ++loadSeq;
+  const from = rangeStart();
+  const single = filt.range === 'yesterday' || filt.range === 'date' || filt.range === 'today';
+  const out = [];
+  try {
+    for (let page = 0; page < 20; page++) {
+      let q = sb.from('reports').select('*')
+        .order('date', {ascending: false}).order('created_at', {ascending: false})
+        .range(page * 1000, page * 1000 + 999);
+      if (from) q = single ? q.eq('date', from) : q.gte('date', from);
+      const {data, error} = await q;
+      if (error) throw error;
+      out.push(...data);
+      if (data.length < 1000) break;
+    }
+  } catch (e) {
+    if (seq !== loadSeq) return;
+    dbState = 'error'; setButtons(); renderArchive();
+    return;
+  }
+  if (seq !== loadSeq) return;
+  reports = out.map(rowFromDb);
+  dbState = 'ready';
+  if (confirmDel && !reports.some(r => r._key === confirmDel)) confirmDel = null;
+  fillFilters(); fillDatalists(); setButtons(); renderArchive();
+}
+async function loadTodayCount() {
+  if (!sb || !me) return;
+  const {count, error} = await sb.from('reports').select('id', {count: 'exact', head: true}).eq('date', todayISO());
+  if (!error) { todayCount = count || 0; $('#tab-count').textContent = todayCount ? String(todayCount) : ''; }
+}
+async function loadSuggestions() {
+  if (!sb || !me) return;
+  const {data, error} = await sb.from('reports').select('worker,entries,helps,prob').order('date', {ascending: false}).limit(300);
+  if (!error) { suggestRows = data || []; fillDatalists(); }
+}
+
+function haystack(r) {
+  const parts = [r.worker];
+  (Array.isArray(r.entries) ? r.entries : []).forEach(e => e && parts.push(e.project, e.client, e.element, e.process, e.done));
+  (Array.isArray(r.helps) ? r.helps : []).forEach(h => h && parts.push(h.who, h.project, h.work));
+  if (r.prob) parts.push(r.prob.project, r.prob.issue, r.prob.missing, r.prob.solution);
+  return norm(parts.filter(Boolean).join(' '));
+}
+function filtered() {
+  const q = norm(filt.q.trim());
+  return reports.filter(r => isISO(r.date) && inRange(r.date)
+    && (!filt.worker || r._uid === filt.worker)
+    && (!filt.problems || r.problem === 'yes')
+    && (!q || haystack(r).includes(q)));
+}
+const canManage = r => !!me && (isAdmin || r._uid === me.user_id);
+
+function barsHTML(title, map) {
+  const rows = [...map.values()].filter(r => r.m > 0).sort((a, b) => b.m - a.m).slice(0, 8);
+  const max = rows.length ? rows[0].m : 1;
+  return `<div class="bars"><h4>${title}</h4>${rows.length ? rows.map(r => `
+    <div class="bar-row"><span class="bar-name" title="${esc(r.name)}">${esc(r.name)}</span><span class="bar-val">${fmtHours(r.m)}</span>
+    <span class="bar-track"><span class="bar-fill" style="width:${(r.m / max * 100).toFixed(1)}%"></span></span></div>`).join('') : '<p class="muted">Nuk ka orë të regjistruara.</p>'}</div>`;
+}
+function repHTML(r) {
+  const s = normalizeState(r);
+  const projects = [...new Set(s.entries.map(e => e.project.trim()).filter(Boolean))].join(' · ') || '—';
+  const tm = totalMinutes(s);
+  const prob = s.problem === 'yes';
+  const can = canManage(r);
+  const confirming = confirmDel === r._key;
+  return `<details class="rep" data-id="${esc(r._key)}"${openIds.has(r._key) ? ' open' : ''}>
+    <summary>
+      <span class="rep-main">
+        <span class="rep-who">${esc(s.worker || 'Pa emër')}</span>
+        <span class="rep-proj">${esc(projects)}</span>
+        ${prob ? `<span class="rep-issue"><b>Problem:</b> ${esc(s.prob.issue || '—')}</span>` : ''}
+      </span>
+      <span class="rep-side">
+        ${s.helped ? '<span class="chip">Ndihmoi</span>' : ''}
+        ${prob ? '<span class="chip bad">Problem</span>' : '<span class="chip ok">Pa probleme</span>'}
+        <span class="rep-hrs">${tm ? fmtHours(tm) : '—'}</span>
+      </span>
+    </summary>
+    <div class="rep-body">
+      <div class="ticket compact">${linesHTML(buildLines(s).slice(1))}</div>
+      <div class="rep-actions">
+        <button type="button" class="btn sm" data-act="copy">Kopjo</button>
+        ${can ? '<button type="button" class="btn sm" data-act="edit">Ndrysho</button>' : ''}
+        ${can ? (confirming
+          ? '<span class="confirm">Fshije përgjithmonë? <button type="button" class="btn sm danger" data-act="del-yes">Po, fshije</button><button type="button" class="btn sm ghost" data-act="del-no">Anulo</button></span>'
+          : '<button type="button" class="btn sm ghost danger-text" data-act="del">Fshije</button>') : ''}
+      </div>
+    </div>
+  </details>`;
+}
+const emptyHTML = (title, text, action) => `<div class="empty"><h3>${title}</h3><p>${text}</p>${action || ''}</div>`;
+
+function renderArchive() {
+  $$('.fchip').forEach(b => b.setAttribute('aria-pressed', String(filt.range === b.dataset.range)));
+  $('#f-date').value = filt.range === 'date' ? filt.date : '';
+  const sum = $('#arch-summary'), list = $('#arch-list');
+  if (dbState !== 'ready' && !reports.length) {
+    sum.innerHTML = '';
+    list.innerHTML = dbState === 'error'
+      ? emptyHTML('Nuk u lidh me serverin', 'Kontrollo internetin dhe shtyp “Rifresko”.')
+      : emptyHTML('Po ngarkohen raportet', 'Një moment…');
+    return;
+  }
+  const rows = filtered();
+  const tMin = rows.reduce((a, r) => a + totalMinutes(normalizeState(r)), 0);
+  const nProb = rows.filter(r => r.problem === 'yes').length;
+  const workers = new Set(rows.map(r => r._uid));
+  const byProject = new Map(), byWorker = new Map();
+  rows.forEach(r => {
+    const s = normalizeState(r);
+    s.entries.forEach(e => {
+      const name = e.project.trim() || 'Pa projekt', key = norm(name);
+      const o = byProject.get(key) || {name, m: 0};
+      o.m += entryMinutes(e); byProject.set(key, o);
+    });
+    const w = byWorker.get(r._uid) || {name: s.worker || 'Pa emër', m: 0};
+    w.m += totalMinutes(s); byWorker.set(r._uid, w);
+  });
+
+  // Admin, today: active workers without a report yet
+  let missing = '';
+  if (isAdmin && filt.range === 'today' && dbState === 'ready') {
+    const done = new Set(reports.filter(r => r.date === todayISO()).map(r => r._uid));
+    const team = members.filter(m => m.active && m.role === 'worker');
+    if (team.length) {
+      const names = team.filter(m => !done.has(m.user_id)).map(m => m.name).sort(collator.compare);
+      missing = names.length
+        ? `<div class="missing"><b>Pa raport sot:</b>${names.map(n => `<span class="chip">${esc(n)}</span>`).join('')}</div>`
+        : '<div class="missing done"><b>Të gjithë punëtorët e kanë dërguar raportin sot.</b></div>';
+    }
+  }
+  const errNote = dbState === 'error' ? '<p class="note warn" style="margin-bottom:12px">Nuk u lidh me serverin. Po shfaqen raportet e ngarkuara më parë.</p>' : '';
+  sum.innerHTML = errNote + missing + (rows.length ? `
+    <div class="stats">
+      <div class="stat"><b>${rows.length}</b> ${rows.length === 1 ? 'raport' : 'raporte'}</div>
+      <div class="stat"><b>${dec(tMin / 60)}</b> orë gjithsej</div>
+      <div class="stat${nProb ? ' alert' : ''}"><b>${nProb}</b> me probleme</div>
+      ${isAdmin ? `<div class="stat"><b>${workers.size}</b> ${workers.size === 1 ? 'punëtor' : 'punëtorë'}</div>` : ''}
+    </div>
+    <div class="breakdown${isAdmin ? '' : ' one'}">${barsHTML('Orët sipas projektit', byProject)}${isAdmin ? barsHTML('Orët sipas punëtorit', byWorker) : ''}</div>` : '');
+
+  if (!rows.length) {
+    const nothingYet = filt.range === 'all' && !filt.q && !filt.worker && !filt.problems;
+    list.innerHTML = nothingYet
+      ? (isAdmin
+        ? emptyHTML('Ende s’ka raporte', 'Raportet e punëtorëve shfaqen këtu sapo ata shtypin “Dërgo raportin”. Shto punëtorët te faqja “Punëtorët”.', '<button type="button" class="btn" data-go="team">Shko te Punëtorët</button>')
+        : emptyHTML('Ende s’ke dërguar raporte', 'Raportet që dërgon shfaqen këtu. I sheh vetëm ti dhe administratori.', '<button type="button" class="btn primary" data-go="form">Shkruaj raportin e parë</button>'))
+      : emptyHTML('Asnjë raport për këtë filtër', filt.range === 'today' ? 'Sot ende nuk është dërguar asnjë raport që përputhet.' : 'Provo një periudhë tjetër ose hiq filtrat.', '<button type="button" class="btn" data-show-all>Shfaq të gjitha</button>');
+    return;
+  }
+  const groups = new Map();
+  rows.slice().sort((a, b) => b.date.localeCompare(a.date) || collator.compare(a.worker, b.worker) || str(a.createdAt).localeCompare(str(b.createdAt)))
+    .forEach(r => { if (!groups.has(r.date)) groups.set(r.date, []); groups.get(r.date).push(r); });
+  list.innerHTML = [...groups].map(([d, rs]) => {
+    const m = rs.reduce((a, r) => a + totalMinutes(normalizeState(r)), 0);
+    const p = rs.filter(r => r.problem === 'yes').length;
+    return `<div class="day"><h3 class="day-h"><span>${esc(fmtLongDate(d))}</span><span class="day-meta">${plural(rs.length, 'raport', 'raporte')} · ${fmtHours(m)}${p ? ` · ${plural(p, 'problem', 'probleme')}` : ''}</span></h3>${rs.map(repHTML).join('')}</div>`;
+  }).join('');
+}
+
+function fillFilters() {
+  const sel = $('#f-worker');
+  const opts = new Map();
+  members.forEach(m => opts.set(m.user_id, m.name));
+  reports.forEach(r => { if (!opts.has(r._uid)) opts.set(r._uid, r.worker || 'Pa emër'); });
+  const list = [...opts].sort((a, b) => collator.compare(a[1], b[1]));
+  sel.innerHTML = '<option value="">Të gjithë punëtorët</option>' + list.map(([id, n]) => `<option value="${esc(id)}"${id === filt.worker ? ' selected' : ''}>${esc(n)}</option>`).join('');
+}
+function fillDatalists() {
+  const uniq = arr => [...new Map(arr.map(v => str(v).trim()).filter(Boolean).map(v => [norm(v), v])).values()].sort(collator.compare);
+  const P = [], C = [], W = [], E = [], R = [];
+  [...suggestRows, ...reports].forEach(r => {
+    W.push(r.worker);
+    (Array.isArray(r.entries) ? r.entries : []).forEach(e => { if (!e) return; P.push(e.project); C.push(e.client); E.push(e.element); R.push(e.process); });
+    (Array.isArray(r.helps) ? r.helps : []).forEach(h => { if (h) { W.push(h.who); P.push(h.project); } });
+    if (r.prob) P.push(r.prob.project);
+  });
+  members.forEach(m => W.push(m.name));
+  const opts = a => a.slice(0, 300).map(v => `<option value="${esc(v)}"></option>`).join('');
+  $('#dl-workers').innerHTML = opts(uniq(W).filter(n => !me || norm(n) !== norm(me.name)));
+  $('#dl-projects').innerHTML = opts(uniq(P));
+  $('#dl-clients').innerHTML = opts(uniq(C));
+  $('#dl-elements').innerHTML = opts(uniq([...ELEMENTS, ...E]));
+  $('#dl-processes').innerHTML = opts([...PROCESSES, ...uniq(R).filter(v => !PROCESSES.some(p => norm(p) === norm(v)))]);
+}
+
+/* archive events */
+$('.chips').addEventListener('click', e => {
+  const b = e.target.closest('[data-range]');
+  if (!b) return;
+  filt.range = b.dataset.range;
+  lsSet(K_RANGE, filt.range);
+  renderArchive(); loadReports();
+});
+$('#f-date').addEventListener('change', e => {
+  if (e.target.value) { filt.range = 'date'; filt.date = e.target.value; }
+  else { filt.range = 'all'; filt.date = ''; }
+  renderArchive(); loadReports();
+});
+$('#f-worker').addEventListener('change', e => { filt.worker = e.target.value; renderArchive(); });
+$('#f-problems').addEventListener('change', e => { filt.problems = e.target.checked; renderArchive(); });
+let qTimer = null;
+$('#f-q').addEventListener('input', e => { clearTimeout(qTimer); qTimer = setTimeout(() => { filt.q = e.target.value; renderArchive(); }, 150); });
+$('#refresh-btn').addEventListener('click', () => { loadReports(); loadTodayCount(); if (isAdmin) loadMembers(); toast('Po rifreskohet…', 1200); });
+
+$('#arch-list').addEventListener('toggle', e => {
+  const d = e.target;
+  if (!d.matches || !d.matches('details.rep')) return;
+  if (d.open) openIds.add(d.dataset.id); else openIds.delete(d.dataset.id);
+}, true);
+$('#view-archive').addEventListener('click', e => {
+  const go = e.target.closest('[data-go]');
+  if (go) { showView(go.dataset.go); return; }
+  if (e.target.closest('[data-show-all]')) {
+    filt = {range: 'all', date: '', worker: '', problems: false, q: ''};
+    $('#f-problems').checked = false; $('#f-q').value = ''; fillFilters();
+    renderArchive(); loadReports(); return;
+  }
+  const btn = e.target.closest('[data-act]');
+  if (!btn) return;
+  const key = btn.closest('[data-id]').dataset.id;
+  const r = reports.find(x => x._key === key);
+  if (!r) return;
+  const act = btn.dataset.act;
+  if (act === 'copy') copyText(reportText(normalizeState(r)));
+  else if (act === 'edit') startEdit(r);
+  else if (act === 'del') { confirmDel = key; renderArchive(); }
+  else if (act === 'del-no') { confirmDel = null; renderArchive(); }
+  else if (act === 'del-yes') deleteReport(r);
+});
+function startEdit(r) {
+  state = normalizeState(JSON.parse(JSON.stringify(r)));
+  editing = {id: r.id, uid: r._uid};
+  errorsShown = false;
+  pendingId = null;
+  showErrors([]);
+  $('#saved').hidden = true;
+  renderForm(); refresh(); scheduleDraft();
+  showView('form');
+}
+async function deleteReport(r) {
+  confirmDel = null;
+  try {
+    const {data, error} = await sb.from('reports').delete().eq('id', r.id).select('id');
+    if (error) throw error;
+    if (!data || !data.length) throw {code: 'not_allowed'};
+    openIds.delete(r._key);
+    if (editing && editing.id === r.id) resetForm();
+    reports = reports.filter(x => x._key !== r._key);
+    renderArchive(); loadTodayCount();
+    toast('Raporti u fshi');
+  } catch (e) {
+    toast(e && (e.code === 'not_allowed' || e.code === '42501') ? 'Nuk ke leje ta fshish këtë raport.' : 'Nuk u fshi. Provo sërish.', 5000);
+    renderArchive();
+  }
+}
+
+/* CSV export */
+function csvCell(v) {
+  let s = str(v);
+  if (/^[=+\-@\t\r]/.test(s)) s = "'" + s; // keep spreadsheet formulas from running
+  return '"' + s.replace(/"/g, '""') + '"';
+}
+$('#export-btn').addEventListener('click', () => {
+  const rows = filtered().slice().sort((a, b) => a.date.localeCompare(b.date) || collator.compare(a.worker, b.worker));
+  if (!rows.length) { toast('Nuk ka raporte për të shkarkuar me këtë filtër.'); return; }
+  const head = ['Data','Punëtori','Projekti','Klienti','Elementi/Mobilja','Procesi','Çfarë realizova sot','Ora nga','Ora deri','Orë',
+    'Kam ndihmuar','Projekti (ndihmë)','Puna (ndihmë)','Koha e ndihmës (orë)','Problem','Projekti (problem)','Problemi','Çfarë mungonte','Zgjidhja'];
+  const lines = [head.map(csvCell).join(';')];
+  rows.forEach(r => {
+    const s = normalizeState(r);
+    const help = s.helped
+      ? [s.helps.map(h => h.who).join(' | '), s.helps.map(h => h.project).join(' | '), s.helps.map(h => h.work).join(' | '), dec(s.helps.reduce((a, h) => a + (Number(h.hours) || 0), 0))]
+      : ['', '', '', ''];
+    const prob = s.problem === 'yes' ? ['Po', s.prob.project, s.prob.issue, s.prob.missing, s.prob.solution] : ['Jo', '', '', '', ''];
+    s.entries.forEach((e, i) => {
+      lines.push([fmtDate(s.date), s.worker, e.project, e.client, e.element, e.process, e.done, e.from, e.to, dec(entryMinutes(e) / 60),
+        ...(i === 0 ? help : ['', '', '', '']), ...(i === 0 ? prob : ['', '', '', '', ''])].map(csvCell).join(';'));
+    });
+  });
+  downloadFile(`ArtGent-raporte-${todayISO()}.csv`, '﻿' + lines.join('\r\n'), 'text/csv;charset=utf-8');
+});
+
+/* own password */
+$('#own-pw').addEventListener('submit', async e => {
+  e.preventDefault();
+  const msg = $('#own-pw-msg');
+  msg.classList.remove('ok');
+  const p1 = $('#own-pw-1').value, p2 = $('#own-pw-2').value;
+  if (p1.length < 8) { msg.textContent = 'Fjalëkalimi duhet të ketë të paktën 8 shenja.'; return; }
+  if (p1 !== p2) { msg.textContent = 'Dy fjalëkalimet nuk përputhen.'; return; }
+  msg.textContent = '';
+  const {error} = await sb.auth.updateUser({password: p1});
+  if (error) { msg.textContent = /different|same/i.test(error.message) ? 'Fjalëkalimi i ri duhet të jetë ndryshe nga i vjetri.' : 'Fjalëkalimi nuk u ndryshua. Provo sërish.'; return; }
+  $('#own-pw-1').value = ''; $('#own-pw-2').value = '';
+  msg.textContent = 'Fjalëkalimi u ndryshua.'; msg.classList.add('ok');
+});
+
+/* ---------- team (admin) ---------- */
+const FN_MSG = {
+  name_required: 'Shkruaj emrin.',
+  email_invalid: 'Email-i nuk është i saktë.',
+  password_weak: 'Fjalëkalimi duhet të ketë 8 deri në 72 shenja.',
+  email_taken: 'Ky email ka tashmë një llogari.',
+  already_setup: 'Administratori është krijuar tashmë. Hyr me llogarinë tënde.',
+  forbidden: 'Vetëm administratori mund ta bëjë këtë.',
+  unauthorized: 'Seanca ka skaduar. Dil dhe hyr sërish.',
+  cannot_change_self: 'Nuk mund ta çaktivizosh llogarinë tënde.',
+  not_found: 'Llogaria nuk u gjet.',
+  network: 'Nuk ka lidhje me serverin. Provo sërish.'
+};
+const fnMsg = c => FN_MSG[c] || 'Diçka nuk funksionoi. Provo sërish.';
+async function invokeFn(body) {
+  try {
+    const {data, error} = await sb.functions.invoke('admin-users', {body});
+    if (!error) return {data};
+    let code = error.name === 'FunctionsFetchError' ? 'network' : 'server_error';
+    try { const j = await error.context.json(); if (j && j.error) code = j.error; } catch (e2) {}
+    return {error: code};
+  } catch (e) { return {error: 'network'}; }
+}
+async function loadMembers() {
+  if (!sb || !isAdmin) return;
+  const {data, error} = await sb.from('members').select('user_id,name,email,role,active,created_at');
+  if (error) { if (view === 'team') $('#team-list').innerHTML = emptyHTML('Nuk u ngarkuan', 'Kontrollo internetin dhe provo sërish.'); return; }
+  members = data || [];
+  renderTeam(); fillFilters(); fillDatalists();
+  if (view === 'archive') renderArchive();
+}
+function memberHTML(m) {
+  const self = m.user_id === me.user_id;
+  const pw = teamUi.pw === m.user_id, conf = teamUi.toggle === m.user_id;
+  const toggle = self ? '' : conf
+    ? `<span class="confirm">${m.active ? 'Ta çaktivizoj?' : 'Ta aktivizoj?'} <button type="button" class="btn sm ${m.active ? 'danger' : 'primary'}" data-team="toggle-yes">Po</button><button type="button" class="btn sm ghost" data-team="toggle-no">Jo</button></span>`
+    : `<button type="button" class="btn sm ghost${m.active ? ' danger-text' : ''}" data-team="toggle">${m.active ? 'Çaktivizo' : 'Aktivizo'}</button>`;
+  return `<div class="member${m.active ? '' : ' off'}" data-uid="${esc(m.user_id)}">
+    <div class="member-main"><span class="member-name">${esc(m.name)}${self ? ' <span class="muted">(ti)</span>' : ''}</span><span class="member-email">${esc(m.email || '')}</span></div>
+    <div class="member-actions">
+      ${m.role === 'admin' ? '<span class="chip accent">Administrator</span>' : ''}
+      ${m.active ? '' : '<span class="chip bad">Çaktivizuar</span>'}
+      <button type="button" class="btn sm" data-team="pw">Ndrysho fjalëkalimin</button>
+      ${toggle}
+    </div>
+    ${pw ? `<form class="inline-form" data-team-form="pw" novalidate>
+      <input id="pw-input" autocomplete="new-password" spellcheck="false" placeholder="Fjalëkalimi i ri (të paktën 8 shenja)" aria-label="Fjalëkalimi i ri">
+      <button type="button" class="btn sm" data-team="gen">Gjenero</button>
+      <button type="submit" class="btn sm primary">Ruaj</button>
+      <button type="button" class="btn sm ghost" data-team="pw-cancel">Anulo</button>
+    </form>` : ''}
+  </div>`;
+}
+function renderTeam() {
+  if (!isAdmin) return;
+  const c = teamUi.cred;
+  $('#team-cred').innerHTML = c ? `<div class="cred">
+      <b>${esc(c.title)}</b>
+      <div class="cred-lines">Faqja: ${esc(location.href.split('#')[0])}<br>Email: ${esc(c.email)}<br>Fjalëkalimi: ${esc(c.password)}</div>
+      <p class="note">Kopjoje dhe dërgoja punëtorit tani. Fjalëkalimi nuk shfaqet më pasi ta mbyllësh.</p>
+      <div class="btn-row"><button type="button" class="btn sm primary" data-team="cred-copy">Kopjo të dhënat</button><button type="button" class="btn sm ghost" data-team="cred-close">Mbyll</button></div>
+    </div>` : '';
+  const list = $('#team-list');
+  if (!members.length) { list.innerHTML = emptyHTML('Po ngarkohen punëtorët', 'Një moment…'); return; }
+  const sorted = members.slice().sort((a, b) => (a.role === b.role ? 0 : a.role === 'admin' ? -1 : 1) || (a.active === b.active ? 0 : a.active ? -1 : 1) || collator.compare(a.name, b.name));
+  const workersCount = members.filter(m => m.role === 'worker').length;
+  list.innerHTML = `<div class="team-list">${sorted.map(memberHTML).join('')}</div>` +
+    (workersCount ? '' : '<p class="note" style="margin-top:12px">Ende nuk ke shtuar punëtorë. Përdor formularin “Shto punëtor”.</p>');
+  const pwIn = $('#pw-input');
+  if (pwIn && document.activeElement !== pwIn) pwIn.focus();
+}
+$('#nw-gen').addEventListener('click', () => { $('#nw-pass').value = genPassword(); });
+$('#add-worker').addEventListener('submit', async e => {
+  e.preventDefault();
+  const msg = $('#nw-msg'), btn = $('#nw-btn');
+  const name = $('#nw-name').value.trim(), email = $('#nw-email').value.trim().toLowerCase(), password = $('#nw-pass').value;
+  if (!name) { msg.textContent = 'Shkruaj emrin e punëtorit.'; $('#nw-name').focus(); return; }
+  if (!EMAIL_RE.test(email)) { msg.textContent = 'Email-i nuk është i saktë.'; $('#nw-email').focus(); return; }
+  if (password.length < 8) { msg.textContent = 'Fjalëkalimi duhet të ketë të paktën 8 shenja. Shtyp “Gjenero” për një të gatshëm.'; $('#nw-pass').focus(); return; }
+  msg.textContent = '';
+  btn.disabled = true; btn.textContent = 'Po shtohet…';
+  const res = await invokeFn({action: 'create', name, email, password});
+  btn.disabled = false; btn.textContent = 'Shto punëtorin';
+  if (res.error) { msg.textContent = fnMsg(res.error); return; }
+  teamUi.cred = {title: `Llogaria për ${name} u krijua. Jepja këto të dhëna:`, email, password};
+  $('#nw-name').value = ''; $('#nw-email').value = ''; $('#nw-pass').value = '';
+  toast('Punëtori u shtua');
+  renderTeam(); loadMembers();
+});
+$('#view-team').addEventListener('click', async e => {
+  const b = e.target.closest('[data-team]');
+  if (!b) return;
+  const act = b.dataset.team;
+  if (act === 'cred-copy' && teamUi.cred) {
+    const c = teamUi.cred;
+    copyText(`ArtGent · Raporti ditor\nFaqja: ${location.href.split('#')[0]}\nEmail: ${c.email}\nFjalëkalimi: ${c.password}`, 'Të dhënat u kopjuan');
+    return;
+  }
+  if (act === 'cred-close') { teamUi.cred = null; renderTeam(); return; }
+  const row = b.closest('[data-uid]');
+  if (!row) return;
+  const uid = row.dataset.uid;
+  const m = members.find(x => x.user_id === uid);
+  if (!m) return;
+  if (act === 'pw') { teamUi.pw = teamUi.pw === uid ? null : uid; teamUi.toggle = null; renderTeam(); }
+  else if (act === 'pw-cancel') { teamUi.pw = null; renderTeam(); }
+  else if (act === 'gen') { const i = $('#pw-input'); if (i) i.value = genPassword(); }
+  else if (act === 'toggle') { teamUi.toggle = uid; teamUi.pw = null; renderTeam(); }
+  else if (act === 'toggle-no') { teamUi.toggle = null; renderTeam(); }
+  else if (act === 'toggle-yes') {
+    b.disabled = true;
+    const res = await invokeFn({action: 'set_active', user_id: uid, active: !m.active});
+    teamUi.toggle = null;
+    if (res.error) toast(fnMsg(res.error), 5000);
+    else toast(m.active ? `${m.name} u çaktivizua` : `${m.name} u aktivizua`);
+    loadMembers();
+  }
+});
+$('#view-team').addEventListener('submit', async e => {
+  const f = e.target.closest('[data-team-form="pw"]');
+  if (!f) return;
+  e.preventDefault();
+  const uid = f.closest('[data-uid]').dataset.uid;
+  const m = members.find(x => x.user_id === uid);
+  const password = $('#pw-input').value;
+  if (password.length < 8) { toast('Fjalëkalimi duhet të ketë të paktën 8 shenja.'); return; }
+  const res = await invokeFn({action: 'set_password', user_id: uid, password});
+  if (res.error) { toast(fnMsg(res.error), 5000); return; }
+  teamUi.pw = null;
+  teamUi.cred = {title: `Fjalëkalimi i ri për ${m ? m.name : 'punëtorin'}:`, email: m ? m.email || '' : '', password};
+  toast('Fjalëkalimi u ndryshua');
+  renderTeam();
+});
+
+/* ---------- sign in / out ---------- */
+function showAuth(panel) {
+  ['loading', 'login', 'setup', 'inactive'].forEach(p => { $('#auth-' + p).hidden = p !== panel; });
+}
+const setAuthLoading = text => { $('#auth-loading-text').textContent = text; showAuth('loading'); };
+
+async function showLogin() {
+  showView('auth');
+  setAuthLoading('Po lidhet…');
+  let needed = false;
+  try {
+    const {data, error} = await sb.rpc('setup_needed');
+    if (error) throw error;
+    needed = data === true;
+  } catch (e) {
+    setAuthLoading('Nuk u lidh me serverin. Kontrollo internetin dhe rifresko faqen.');
+    return;
+  }
+  showAuth(needed ? 'setup' : 'login');
+  const first = needed ? $('#setup-name') : $('#login-email');
+  if (first) first.focus();
+}
+function loginError(err) {
+  const m = str(err && err.message).toLowerCase();
+  if (m.includes('invalid login')) return 'Email-i ose fjalëkalimi është i gabuar.';
+  if (m.includes('banned')) return 'Kjo llogari është çaktivizuar. Fol me administratorin.';
+  if (m.includes('fetch') || m.includes('network')) return 'Nuk ka lidhje me internetin. Provo sërish.';
+  return 'Hyrja nuk funksionoi. Provo sërish.';
+}
+$('#auth-login').addEventListener('submit', async e => {
+  e.preventDefault();
+  const msg = $('#login-msg'), btn = $('#login-btn');
+  const email = $('#login-email').value.trim(), password = $('#login-pass').value;
+  if (!email || !password) { msg.textContent = 'Shkruaj email-in dhe fjalëkalimin.'; return; }
+  msg.textContent = '';
+  btn.disabled = true; btn.textContent = 'Po hyn…';
+  let res;
+  try { res = await sb.auth.signInWithPassword({email, password}); } catch (err) { res = {error: err}; }
+  btn.disabled = false; btn.textContent = 'Hyr';
+  if (res.error || !res.data || !res.data.user) { msg.textContent = loginError(res.error); return; }
+  $('#login-pass').value = '';
+  await enterApp(res.data.user);
+});
+$('#auth-setup').addEventListener('submit', async e => {
+  e.preventDefault();
+  const msg = $('#setup-msg'), btn = $('#setup-btn');
+  const name = $('#setup-name').value.trim(), email = $('#setup-email').value.trim().toLowerCase();
+  const p1 = $('#setup-pass').value, p2 = $('#setup-pass2').value;
+  if (!name) { msg.textContent = 'Shkruaj emrin tënd.'; return; }
+  if (!EMAIL_RE.test(email)) { msg.textContent = 'Email-i nuk është i saktë.'; return; }
+  if (p1.length < 8) { msg.textContent = 'Fjalëkalimi duhet të ketë të paktën 8 shenja.'; return; }
+  if (p1 !== p2) { msg.textContent = 'Dy fjalëkalimet nuk përputhen.'; return; }
+  msg.textContent = '';
+  btn.disabled = true; btn.textContent = 'Po krijohet…';
+  const res = await invokeFn({action: 'bootstrap', name, email, password: p1});
+  if (res.error) {
+    btn.disabled = false; btn.textContent = 'Krijo llogarinë e administratorit';
+    msg.textContent = fnMsg(res.error);
+    if (res.error === 'already_setup') setTimeout(showLogin, 1500);
+    return;
+  }
+  let login;
+  try { login = await sb.auth.signInWithPassword({email, password: p1}); } catch (err) { login = {error: err}; }
+  btn.disabled = false; btn.textContent = 'Krijo llogarinë e administratorit';
+  $('#setup-pass').value = ''; $('#setup-pass2').value = '';
+  if (login.error || !login.data || !login.data.user) { showLogin(); return; }
+  await enterApp(login.data.user);
+});
+
+async function enterApp(user) {
+  showView('auth');
+  setAuthLoading('Po hapet…');
+  const {data, error} = await sb.from('members').select('user_id,name,email,role,active').eq('user_id', user.id).maybeSingle();
+  if (error) { setAuthLoading('Nuk u lidh me serverin. Kontrollo internetin dhe rifresko faqen.'); return; }
+  if (!data || !data.active) {
+    $('#inactive-text').textContent = data
+      ? 'Administratori e ka çaktivizuar këtë llogari. Fol me të nëse mendon se është gabim.'
+      : 'Kjo llogari nuk është shtuar si punëtor. Fol me administratorin.';
+    showAuth('inactive');
+    return;
+  }
+  me = data;
+  isAdmin = me.role === 'admin';
+  reports = []; members = []; suggestRows = []; dbState = 'loading';
+  const saved = loadDraft();
+  if (saved && saved.state) {
+    state = normalizeState(saved.state);
+    editing = saved.editing && saved.editing.id ? saved.editing : null;
+    if (!editing) { state.worker = me.name; if (!hasContent(state)) state.date = todayISO(); }
+  } else {
+    state = freshState({worker: me.name});
+    editing = null;
+  }
+  errorsShown = false;
+  showErrors([]);
+  $('#saved').hidden = true;
+  applyRole();
+  renderForm(); refresh();
+  const h = location.hash;
+  showView(h === '#arkiva' ? 'archive' : h === '#punetoret' && isAdmin ? 'team' : 'form');
+  loadReports(); loadSuggestions(); loadTodayCount();
+  if (isAdmin) loadMembers();
+}
+function applyRole() {
+  $('#role-badge').hidden = !isAdmin;
+  $('#tab-team').hidden = !isAdmin;
+  $('#who-name').textContent = me ? me.name : '';
+  $('#account-email').textContent = me && me.email ? `Hyrë si ${me.email}` : '';
+  $('#tab-archive-label').textContent = isAdmin ? 'Arkiva' : 'Raportet e mia';
+  $('#arch-title').textContent = isAdmin ? 'Arkiva e raporteve' : 'Raportet e mia';
+  $('#arch-lead').textContent = isAdmin
+    ? 'Raportet e të gjithë punëtorëve, të grupuara sipas ditës. Çdo punëtor sheh vetëm raportet e veta.'
+    : 'Raportet që ke dërguar ti. I sheh vetëm ti dhe administratori.';
+  $('#f-worker').hidden = !isAdmin;
+  $('#saved-go').textContent = isAdmin ? 'Shiko në arkivë' : 'Shiko raportet e mia';
+}
+function leaveApp() {
+  me = null; isAdmin = false;
+  reports = []; members = []; suggestRows = []; todayCount = 0;
+  editing = null; pendingId = null; state = freshState();
+  filt.worker = ''; teamUi.pw = teamUi.toggle = teamUi.cred = null;
+  openIds.clear(); confirmDel = null;
+  $('#tab-count').textContent = '';
+  $('#role-badge').hidden = true;
+  showLogin();
+}
+async function logout() {
+  try { await sb.auth.signOut(); } catch (e) {}
+  leaveApp();
+}
+$('#logout').addEventListener('click', logout);
+$('#inactive-logout').addEventListener('click', logout);
+
+/* keep the archive fresh while it is open */
+setInterval(() => {
+  if (me && view === 'archive' && document.visibilityState === 'visible') { loadReports(); loadTodayCount(); }
+}, 60000);
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'visible' && me) { loadTodayCount(); if (view === 'archive') loadReports(); }
+});
+
+/* ---------- boot ---------- */
+async function boot() {
+  const r = lsGet(K_RANGE);
+  if (['today', 'yesterday', 'week', 'month', 'all'].includes(r)) filt.range = r;
+  showView('auth');
+  if (!window.supabase || !window.supabase.createClient) {
+    setAuthLoading('Faqja nuk u ngarkua plotësisht. Kontrollo internetin dhe rifresko.');
+    return;
+  }
+  sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {
+    auth: {persistSession: true, autoRefreshToken: true, detectSessionInUrl: false}
+  });
+  sb.auth.onAuthStateChange(event => {
+    // Defer: calling Supabase inside this callback can stall the client.
+    if (event === 'SIGNED_OUT' && me) setTimeout(leaveApp, 0);
+  });
+  let session = null;
+  try { ({data: {session}} = await sb.auth.getSession()); } catch (e) {}
+  if (session && session.user) await enterApp(session.user);
+  else await showLogin();
+}
+boot();
+})();
+</script>
+</body>
+</html>
