@@ -286,6 +286,8 @@ input::placeholder,textarea::placeholder{color:var(--muted);opacity:.75}
 .team-grid{display:grid;grid-template-columns:minmax(0,380px) minmax(0,1fr);gap:24px;align-items:start}
 @media (max-width:900px){.team-grid{grid-template-columns:minmax(0,1fr)}}
 .team-grid .sec-head h2{font-size:20px}
+.team-side{display:flex;flex-direction:column;gap:18px;min-width:0}
+.cat-list{display:flex;flex-wrap:wrap;gap:6px}
 .pw-row{display:flex;gap:8px}
 .pw-row input{flex:1}
 .cred{border:1px solid var(--ok);background:var(--ok-bg);border-radius:8px;padding:14px 16px;display:flex;flex-direction:column;gap:6px;margin-bottom:14px}
@@ -475,12 +477,7 @@ input::placeholder,textarea::placeholder{color:var(--muted);opacity:.75}
         <button type="button" class="fchip" data-range="all">Të gjitha</button>
       </div>
       <input type="date" id="f-date" aria-label="Data e caktuar">
-      <select id="f-category" aria-label="Kategoria" hidden>
-        <option value="">Të gjitha kategoritë</option>
-        <option value="marangoz">Marangoz</option>
-        <option value="ndihmes_marangoz">Ndihmës-Marangoz</option>
-        <option value="zmerilues">Zmerilues</option>
-      </select>
+      <select id="f-category" aria-label="Kategoria" hidden><option value="">Të gjitha kategoritë</option></select>
       <select id="f-worker" aria-label="Punëtori" hidden><option value="">Të gjithë punëtorët</option></select>
       <label class="check"><input type="checkbox" id="f-problems"> Vetëm me probleme</label>
       <input type="search" id="f-q" placeholder="Kërko projekt, klient, proces…" aria-label="Kërko">
@@ -514,17 +511,13 @@ input::placeholder,textarea::placeholder{color:var(--muted);opacity:.75}
       <p>Krijo llogari për punëtorët dhe zgjidh kategorinë e secilit. Secili hyn me email-in dhe fjalëkalimin që i jep ti, sheh panelin e kategorisë së vet dhe vetëm raportet e veta.</p>
     </div>
     <div class="team-grid">
+      <div class="team-side">
       <form class="panel sec" id="add-worker" novalidate>
         <div class="sec-head"><h2>Shto punëtor</h2></div>
         <div class="field"><label for="nw-name">Emri dhe mbiemri</label><input id="nw-name" autocomplete="off"></div>
         <div class="field"><label for="nw-email">Email</label><input type="email" id="nw-email" autocomplete="off" inputmode="email" autocapitalize="none" spellcheck="false" placeholder="Email-i me të cilin do të hyjë"></div>
         <div class="field"><label for="nw-cat">Kategoria e llogarisë</label>
-          <select id="nw-cat">
-            <option value="">Zgjidh kategorinë</option>
-            <option value="marangoz">Marangoz</option>
-            <option value="ndihmes_marangoz">Ndihmës-Marangoz</option>
-            <option value="zmerilues">Zmerilues</option>
-          </select>
+          <select id="nw-cat"><option value="">Zgjidh kategorinë</option></select>
         </div>
         <div class="field"><label for="nw-pass">Fjalëkalimi <span class="opt">të paktën 8 shenja</span></label>
           <div class="pw-row"><input id="nw-pass" autocomplete="new-password" spellcheck="false"><button type="button" class="btn sm" id="nw-gen">Gjenero</button></div>
@@ -533,6 +526,16 @@ input::placeholder,textarea::placeholder{color:var(--muted);opacity:.75}
         <button class="btn primary" type="submit" id="nw-btn">Shto punëtorin</button>
         <p class="note">Nuk dërgohet asnjë email. Pasi ta shtosh, jepja punëtorit adresën e faqes, email-in dhe fjalëkalimin.</p>
       </form>
+      <form class="panel sec" id="add-cat" novalidate>
+        <div class="sec-head"><h2>Kategoritë</h2></div>
+        <div class="cat-list" id="cat-list"></div>
+        <div class="field"><label for="nc-label">Kategori e re</label><input id="nc-label" autocomplete="off" placeholder="p.sh. Lyerës"></div>
+        <div class="field"><label for="nc-panel">Titulli i panelit <span class="opt">opsionale</span></label><input id="nc-panel" autocomplete="off" placeholder="p.sh. Paneli i Lyerësit"></div>
+        <p class="form-msg" id="nc-msg" role="alert"></p>
+        <button class="btn" type="submit" id="nc-btn">Shto kategorinë</button>
+        <p class="note">Kategoria e re shfaqet menjëherë te llogaritë e punëtorëve dhe te filtrat e arkivës.</p>
+      </form>
+      </div>
       <div>
         <div id="team-cred"></div>
         <div id="team-list"></div>
@@ -645,13 +648,15 @@ const blankProb = () => ({project: '', issue: '', missing: '', solution: ''});
 const PAUSES = [0, 30, 60, 90, 120];
 // Regular day: 08:00–17:00 with a 1-hour break = 8 hours of work.
 const DAY_FROM = '08:00', DAY_TO = '17:00', DAY_PAUSE = 60, DAY_MINUTES = 480;
-// Account categories the admin assigns. `panel` is how the worker's panel is titled.
-const CATEGORIES = {
+// Account categories the admin assigns and can add to; loaded from the database at sign-in.
+// These are the starting ones, used until the list arrives. `panel` titles the worker's panel.
+let CATEGORIES = {
   marangoz: {label: 'Marangoz', panel: 'Paneli i Marangozit'},
   ndihmes_marangoz: {label: 'Ndihmës-Marangoz', panel: 'Paneli i Ndihmës-Marangozit'},
-  zmerilues: {label: 'Zmerilues', panel: 'Paneli i Zmeriluesit'}
+  zmerilues: {label: 'Zmerilus', panel: 'Paneli i Zmerilusit'}
 };
 const catLabel = c => (CATEGORIES[c] ? CATEGORIES[c].label : '');
+const catPanel = c => (CATEGORIES[c] ? CATEGORIES[c].panel || `Paneli: ${CATEGORIES[c].label}` : '');
 const freshState = (keep = {}) => ({
   date: keep.date || todayISO(), worker: keep.worker || '', category: keep.category || '',
   entries: [{...blankEntry(), from: DAY_FROM, to: DAY_TO}], pause: DAY_PAUSE,
@@ -663,7 +668,7 @@ function normalizeState(s) {
   const out = freshState();
   out.date = isISO(s.date) ? s.date : todayISO();
   out.worker = str(s.worker);
-  out.category = CATEGORIES[s.category] ? s.category : '';
+  out.category = /^[a-z0-9_]{1,40}$/.test(str(s.category)) ? s.category : '';
   out.entries = (Array.isArray(s.entries) && s.entries.length ? s.entries : [{}]).map(e => { const b = blankEntry(); for (const k in b) b[k] = str(e && e[k]); return b; });
   const pz = Number(s.pause);
   out.pause = s.pause == null || s.pause === '' ? 0 : PAUSES.includes(pz) ? pz : DAY_PAUSE; // reports saved before breaks existed have none
@@ -1620,6 +1625,8 @@ const FN_MSG = {
   not_found: 'Llogaria nuk u gjet.',
   network: 'Nuk ka lidhje me serverin. Provo sërish.',
   category_invalid: 'Zgjidh kategorinë e llogarisë.',
+  category_exists: 'Kjo kategori ekziston tashmë.',
+  label_required: 'Shkruaj emrin e kategorisë.',
   recovery_invalid: 'Email-i ose kodi nuk është i saktë, ose kodi ka skaduar. Kontrollo kodin ose kërko një të ri.'
 };
 const fnMsg = c => FN_MSG[c] || 'Diçka nuk funksionoi. Provo sërish.';
@@ -1632,6 +1639,43 @@ async function invokeFn(body) {
     return {error: code};
   } catch (e) { return {error: 'network'}; }
 }
+/* categories: loaded from the database; the admin can add new ones */
+async function loadCategories() {
+  if (!sb) return;
+  const {data, error} = await sb.from('categories').select('id,label,panel').order('created_at');
+  if (error || !data || !data.length) return; // keep the built-in list
+  const next = {};
+  data.forEach(c => { next[c.id] = {label: c.label, panel: c.panel || ''}; });
+  CATEGORIES = next;
+  renderCategoryOptions();
+}
+function renderCategoryOptions() {
+  const opts = Object.entries(CATEGORIES).map(([k, c]) => `<option value="${esc(k)}">${esc(c.label)}</option>`).join('');
+  const f = $('#f-category'), keepF = filt.category;
+  f.innerHTML = '<option value="">Të gjitha kategoritë</option>' + opts;
+  f.value = CATEGORIES[keepF] ? keepF : '';
+  const n = $('#nw-cat'), keepN = n.value;
+  n.innerHTML = '<option value="">Zgjidh kategorinë</option>' + opts;
+  n.value = CATEGORIES[keepN] ? keepN : '';
+  $('#cat-list').innerHTML = Object.values(CATEGORIES).map(c => `<span class="chip" title="${esc(c.panel || '')}">${esc(c.label)}</span>`).join('');
+}
+$('#add-cat').addEventListener('submit', async e => {
+  e.preventDefault();
+  const msg = $('#nc-msg'), btn = $('#nc-btn');
+  const label = $('#nc-label').value.trim(), panel = $('#nc-panel').value.trim();
+  if (!label) { msg.textContent = 'Shkruaj emrin e kategorisë.'; $('#nc-label').focus(); return; }
+  if (Object.values(CATEGORIES).some(c => norm(c.label) === norm(label))) { msg.textContent = 'Kjo kategori ekziston tashmë.'; return; }
+  msg.textContent = '';
+  btn.disabled = true; btn.textContent = 'Po shtohet…';
+  const res = await invokeFn({action: 'add_category', label, panel});
+  btn.disabled = false; btn.textContent = 'Shto kategorinë';
+  if (res.error) { msg.textContent = fnMsg(res.error); return; }
+  $('#nc-label').value = ''; $('#nc-panel').value = '';
+  toast(`Kategoria “${label}” u shtua`);
+  await loadCategories();
+  renderTeam();
+});
+
 async function loadMembers() {
   if (!sb || !isAdmin) return;
   const {data, error} = await sb.from('members').select('user_id,name,email,role,active,category,created_at');
@@ -1883,6 +1927,7 @@ async function enterApp(user) {
   }
   me = data;
   isAdmin = me.role === 'admin';
+  await loadCategories();
   reports = []; members = []; suggestRows = []; dbState = 'loading';
   const saved = loadDraft();
   if (saved && saved.state) {
@@ -1909,7 +1954,7 @@ function applyRole() {
   // Admin sees "Administrator"; a worker sees his category in the top bar and a panel titled for it.
   $('#role-badge').textContent = isAdmin ? 'Administrator' : cat ? cat.label : '';
   $('#role-badge').hidden = !isAdmin && !cat;
-  $('#form-title').textContent = !isAdmin && cat ? cat.panel : 'Raporti ditor';
+  $('#form-title').textContent = !isAdmin && cat ? catPanel(me.category) : 'Raporti ditor';
   $('#f-category').hidden = !isAdmin;
   $('#tab-team').hidden = !isAdmin;
   $('#who-name').textContent = me ? me.name : '';
@@ -1952,6 +1997,7 @@ document.addEventListener('visibilitychange', () => {
 async function boot() {
   const r = lsGet(K_RANGE);
   if (['today', 'yesterday', 'week', 'month', 'all'].includes(r)) filt.range = r;
+  renderCategoryOptions();
   showView('auth');
   if (!window.supabase || !window.supabase.createClient) {
     setAuthLoading('Faqja nuk u ngarkua plotësisht. Kontrollo internetin dhe rifresko.');
