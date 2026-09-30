@@ -232,7 +232,7 @@ input::placeholder,textarea::placeholder{color:var(--muted);opacity:.75}
 .stat{display:flex;align-items:baseline;gap:7px;color:var(--muted);font-size:14px}
 .stat b{font:500 22px/1 var(--f-mono);color:var(--ink);font-variant-numeric:tabular-nums}
 .stat.alert b{color:var(--bad)}
-.breakdown{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;margin-bottom:22px}
+.breakdown{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:14px;margin-bottom:22px}
 .breakdown.one{grid-template-columns:minmax(0,1fr)}
 @media (max-width:700px){.breakdown{grid-template-columns:minmax(0,1fr)}}
 .bars{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:14px 18px 16px;display:flex;flex-direction:column;gap:10px;min-width:0}
@@ -258,6 +258,7 @@ input::placeholder,textarea::placeholder{color:var(--muted);opacity:.75}
 .rep summary:hover{background:var(--field)}
 .rep-main{display:flex;flex-direction:column;gap:2px;min-width:0}
 .rep-who{font-weight:700}
+.rep-cat{font-weight:500;color:var(--muted);font-size:13.5px}
 .rep-proj{color:var(--muted);font-size:13.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .rep-issue{color:var(--bad);font-size:13.5px}
 .rep-side{display:flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:flex-end}
@@ -301,6 +302,8 @@ input::placeholder,textarea::placeholder{color:var(--muted);opacity:.75}
 .member-email{color:var(--muted);font-size:13.5px;overflow-wrap:anywhere}
 .member-actions{display:flex;gap:8px;flex-wrap:wrap;align-items:center;justify-content:flex-end}
 .member .inline-form{grid-column:1/-1}
+.cat-select{width:auto!important;font-size:13.5px!important;padding:6px 8px!important;font-weight:600}
+.cat-select.missing-cat{border-color:var(--bad)!important;color:var(--bad)}
 @media (max-width:620px){.member{grid-template-columns:minmax(0,1fr)}.member-actions{justify-content:flex-start}}
 
 /* Toast + copy fallback */
@@ -383,7 +386,7 @@ input::placeholder,textarea::placeholder{color:var(--muted);opacity:.75}
   <!-- ============ FORM ============ -->
   <section id="view-form" role="tabpanel" aria-labelledby="tab-form" hidden>
     <div class="intro">
-      <h1>Raporti ditor</h1>
+      <h1 id="form-title">Raporti ditor</h1>
       <p>Plotësoje në fund të ditës. Raporti në anën tjetër përditësohet ndërsa shkruan.</p>
     </div>
 
@@ -420,18 +423,6 @@ input::placeholder,textarea::placeholder{color:var(--muted);opacity:.75}
             <div class="reg-sum ot-sum"><span class="label">Orë shtesë (pas 17:00)</span><output class="hrs" id="ot-total">0 orë</output></div>
           </div>
           <p class="note">Orari i rregullt: 08:00–17:00 me 1 orë pushim = 8 orë pune. Çdo orë pas 17:00 llogaritet automatikisht si orë shtesë.</p>
-        </section>
-
-        <section class="sec" aria-labelledby="h-help">
-          <div class="sec-head"><h2 id="h-help">Punëtorë ndihmës</h2></div>
-          <div class="choices" role="radiogroup" aria-labelledby="h-help">
-            <label class="choice"><input type="radio" name="helped" value="no" id="helped-no"><span class="box"></span>Nuk ndihmova askënd</label>
-            <label class="choice"><input type="radio" name="helped" value="yes" id="helped-yes"><span class="box"></span>Kam ndihmuar</label>
-          </div>
-          <div class="sub-block" id="help-block" hidden>
-            <div id="helps"></div>
-            <button type="button" class="add" id="add-help">+ Shto një koleg tjetër</button>
-          </div>
         </section>
 
         <section class="sec" aria-labelledby="h-prob">
@@ -484,6 +475,12 @@ input::placeholder,textarea::placeholder{color:var(--muted);opacity:.75}
         <button type="button" class="fchip" data-range="all">Të gjitha</button>
       </div>
       <input type="date" id="f-date" aria-label="Data e caktuar">
+      <select id="f-category" aria-label="Kategoria" hidden>
+        <option value="">Të gjitha kategoritë</option>
+        <option value="marangoz">Marangoz</option>
+        <option value="ndihmes_marangoz">Ndihmës-Marangoz</option>
+        <option value="zmerilues">Zmerilues</option>
+      </select>
       <select id="f-worker" aria-label="Punëtori" hidden><option value="">Të gjithë punëtorët</option></select>
       <label class="check"><input type="checkbox" id="f-problems"> Vetëm me probleme</label>
       <input type="search" id="f-q" placeholder="Kërko projekt, klient, proces…" aria-label="Kërko">
@@ -514,13 +511,21 @@ input::placeholder,textarea::placeholder{color:var(--muted);opacity:.75}
   <section id="view-team" role="tabpanel" aria-labelledby="tab-team" hidden>
     <div class="intro">
       <h1>Punëtorët</h1>
-      <p>Krijo llogari për punëtorët. Secili hyn me email-in dhe fjalëkalimin që i jep ti, dhe sheh vetëm raportet e veta.</p>
+      <p>Krijo llogari për punëtorët dhe zgjidh kategorinë e secilit. Secili hyn me email-in dhe fjalëkalimin që i jep ti, sheh panelin e kategorisë së vet dhe vetëm raportet e veta.</p>
     </div>
     <div class="team-grid">
       <form class="panel sec" id="add-worker" novalidate>
         <div class="sec-head"><h2>Shto punëtor</h2></div>
         <div class="field"><label for="nw-name">Emri dhe mbiemri</label><input id="nw-name" autocomplete="off"></div>
         <div class="field"><label for="nw-email">Email</label><input type="email" id="nw-email" autocomplete="off" inputmode="email" autocapitalize="none" spellcheck="false" placeholder="Email-i me të cilin do të hyjë"></div>
+        <div class="field"><label for="nw-cat">Kategoria e llogarisë</label>
+          <select id="nw-cat">
+            <option value="">Zgjidh kategorinë</option>
+            <option value="marangoz">Marangoz</option>
+            <option value="ndihmes_marangoz">Ndihmës-Marangoz</option>
+            <option value="zmerilues">Zmerilues</option>
+          </select>
+        </div>
         <div class="field"><label for="nw-pass">Fjalëkalimi <span class="opt">të paktën 8 shenja</span></label>
           <div class="pw-row"><input id="nw-pass" autocomplete="new-password" spellcheck="false"><button type="button" class="btn sm" id="nw-gen">Gjenero</button></div>
         </div>
@@ -551,9 +556,7 @@ input::placeholder,textarea::placeholder{color:var(--muted);opacity:.75}
   </div>
 </div>
 
-<datalist id="dl-workers"></datalist>
 <datalist id="dl-projects"></datalist>
-<datalist id="dl-categories"></datalist>
 
 <noscript><p class="wrap">Kjo faqe kërkon JavaScript.</p></noscript>
 
@@ -638,16 +641,21 @@ function genPassword() {
 
 /* ---------- state ---------- */
 const blankEntry = () => ({project: '', done: '', from: '', to: ''});
-const blankHelp = () => ({who: '', category: '', project: '', work: '', hours: ''});
 const blankProb = () => ({project: '', issue: '', missing: '', solution: ''});
 const PAUSES = [0, 30, 60, 90, 120];
 // Regular day: 08:00–17:00 with a 1-hour break = 8 hours of work.
 const DAY_FROM = '08:00', DAY_TO = '17:00', DAY_PAUSE = 60, DAY_MINUTES = 480;
-const CATEGORIES = ['Zdrukthëtar', 'Montues', 'Lyerës / Llakues', 'Operator CNC', 'Prerës', 'Tapicier', 'Projektues', 'Ndihmës punëtor', 'Shofer', 'Praktikant'];
+// Account categories the admin assigns. `panel` is how the worker's panel is titled.
+const CATEGORIES = {
+  marangoz: {label: 'Marangoz', panel: 'Paneli i Marangozit'},
+  ndihmes_marangoz: {label: 'Ndihmës-Marangoz', panel: 'Paneli i Ndihmës-Marangozit'},
+  zmerilues: {label: 'Zmerilues', panel: 'Paneli i Zmeriluesit'}
+};
+const catLabel = c => (CATEGORIES[c] ? CATEGORIES[c].label : '');
 const freshState = (keep = {}) => ({
-  date: keep.date || todayISO(), worker: keep.worker || '',
+  date: keep.date || todayISO(), worker: keep.worker || '', category: keep.category || '',
   entries: [{...blankEntry(), from: DAY_FROM, to: DAY_TO}], pause: DAY_PAUSE,
-  helped: null, helps: [blankHelp()], problem: '', prob: blankProb()
+  problem: '', prob: blankProb()
 });
 
 function normalizeState(s) {
@@ -655,17 +663,16 @@ function normalizeState(s) {
   const out = freshState();
   out.date = isISO(s.date) ? s.date : todayISO();
   out.worker = str(s.worker);
+  out.category = CATEGORIES[s.category] ? s.category : '';
   out.entries = (Array.isArray(s.entries) && s.entries.length ? s.entries : [{}]).map(e => { const b = blankEntry(); for (const k in b) b[k] = str(e && e[k]); return b; });
   const pz = Number(s.pause);
   out.pause = s.pause == null || s.pause === '' ? 0 : PAUSES.includes(pz) ? pz : DAY_PAUSE; // reports saved before breaks existed have none
-  out.helped = s.helped === true ? true : s.helped === false ? false : null;
-  out.helps = (Array.isArray(s.helps) && s.helps.length ? s.helps : [{}]).map(h => { const b = blankHelp(); for (const k in b) b[k] = str(h && h[k]); return b; });
   out.problem = s.problem === 'none' || s.problem === 'yes' ? s.problem : '';
   const p = s.prob && typeof s.prob === 'object' ? s.prob : {};
   for (const k in out.prob) out.prob[k] = str(p[k]);
   return out;
 }
-const hasContent = s => s.entries.some(e => e.project || e.done) || s.helped !== null || !!s.problem;
+const hasContent = s => s.entries.some(e => e.project || e.done) || !!s.problem;
 const entryMinutes = e => minutesBetween(e.from, e.to);
 const toMin = t => { const [h, m] = t.split(':').map(Number); return h * 60 + m; };
 // The day's jobs as [start, end] minutes from midnight, sorted; a job past midnight ends the next day.
@@ -723,7 +730,7 @@ let suggestRows = [];
 let members = [];
 let todayCount = 0;
 
-let filt = {range: 'today', date: '', worker: '', problems: false, q: ''};
+let filt = {range: 'today', date: '', worker: '', category: '', problems: false, q: ''};
 const openIds = new Set();
 let confirmDel = null;
 const teamUi = {pw: null, toggle: null, cred: null};
@@ -734,6 +741,7 @@ function buildLines(s) {
   L.push({h: 'RAPORTI DITOR · ArtGent'});
   L.push({k: 'Data', v: fmtDate(s.date), blankV: '__/__/____'});
   L.push({k: 'Përgjegjësi', v: s.worker.trim()});
+  if (s.category) L.push({k: 'Kategoria', v: catLabel(s.category)});
   const multi = s.entries.length > 1;
   s.entries.forEach((e, i) => {
     if (multi) { L.push({gap: 1}); L.push({sub: `Puna ${i + 1}`}); }
@@ -749,22 +757,6 @@ function buildLines(s) {
   if (ot) L.push({k: 'Orë shtesë (pas 17:00)', v: fmtHours(ot)});
   const tm = totalMinutes(s);
   L.push({k: 'Totali i ditës', v: tm ? fmtHours(tm) : '', blankV: '__ orë', strong: 1});
-  L.push({gap: 1});
-  L.push({h: 'PUNËTORË NDIHMËS'});
-  if (s.helped === true) {
-    s.helps.forEach((h, i) => {
-      if (i) L.push({gap: 1});
-      L.push({k: 'Kam ndihmuar', v: h.who.trim()});
-      L.push({k: 'Kategoria', v: h.category.trim()});
-      L.push({k: 'Projekti', v: h.project.trim()});
-      L.push({k: 'Puna', v: h.work.trim()});
-      L.push({k: 'Koha', v: Number(h.hours) > 0 ? fmtHoursNum(h.hours) : '', blankV: '__ orë'});
-    });
-  } else if (s.helped === false) {
-    L.push({t: 'Sot nuk kam ndihmuar askënd.'});
-  } else {
-    L.push({k: 'Kam ndihmuar', v: ''});
-  }
   L.push({gap: 1});
   L.push({h: 'PROBLEMATIKA'});
   L.push({t: `${s.problem === 'none' ? '☑' : '☐'} Nuk pati probleme`});
@@ -811,27 +803,7 @@ function entryHTML(e, i, n) {
     </div>
   </div>`;
 }
-function helpHTML(h, i, n) {
-  const id = k => `h-${i}-${k}`;
-  const inp = (k, extra) => `id="${id(k)}" data-h="${i}" data-k="${k}" ${extra || ''}`;
-  return `<div class="entry">
-    ${n > 1 ? `<div class="entry-head"><span class="entry-n">Kolegu ${i + 1}</span><button type="button" class="lnk danger" data-rm-help="${i}">Hiqe</button></div>` : ''}
-    <div class="grid2">
-      <div class="field"><label for="${id('who')}">Kam ndihmuar</label><input ${inp('who', 'list="dl-workers" placeholder="Emri i kolegut"')} value="${esc(h.who)}"></div>
-      <div class="field"><label for="${id('category')}">Kategoria e punëtorit</label><input ${inp('category', 'list="dl-categories" placeholder="Zgjidh ose shkruaj, p.sh. Montues"')} value="${esc(h.category)}"></div>
-      <div class="field"><label for="${id('project')}">Projekti</label><input ${inp('project', 'list="dl-projects" placeholder="Projekti ku ndihmove"')} value="${esc(h.project)}"></div>
-      <div class="field"><label for="${id('work')}">Puna</label><input ${inp('work', 'placeholder="p.sh. Montim i korpuseve"')} value="${esc(h.work)}"></div>
-      <div class="field"><label for="${id('hours')}">Koha (orë)</label><input type="number" inputmode="decimal" min="0" max="24" step="0.25" ${inp('hours', 'placeholder="p.sh. 1,5"')} value="${esc(h.hours)}"></div>
-    </div>
-  </div>`;
-}
 function renderEntries() { $('#entries').innerHTML = state.entries.map((e, i) => entryHTML(e, i, state.entries.length)).join(''); }
-function renderHelps() { $('#helps').innerHTML = state.helps.map((h, i) => helpHTML(h, i, state.helps.length)).join(''); }
-function syncHelped() {
-  $('#helped-yes').checked = state.helped === true;
-  $('#helped-no').checked = state.helped === false;
-  $('#help-block').hidden = state.helped !== true;
-}
 function syncProblem() {
   $('#problem-none').checked = state.problem === 'none';
   $('#problem-yes').checked = state.problem === 'yes';
@@ -842,8 +814,6 @@ function renderForm() {
   $('#worker').value = state.worker;
   renderEntries();
   $('#pause').value = String(state.pause);
-  renderHelps();
-  syncHelped();
   syncProblem();
   $$('[data-p]').forEach(el => { el.value = state.prob[el.dataset.p] || ''; });
   $('#edit-banner').hidden = !editing;
@@ -888,11 +858,9 @@ function loadDraft() {
 function onInput(ev) {
   const t = ev.target;
   if (t.dataset.e !== undefined) state.entries[+t.dataset.e][t.dataset.k] = t.value;
-  else if (t.dataset.h !== undefined) state.helps[+t.dataset.h][t.dataset.k] = t.value;
   else if (t.dataset.p) state.prob[t.dataset.p] = t.value;
   else if (t.id === 'pause') state.pause = Number(t.value) || 0;
   else if (t.name === 'problem') { state.problem = t.value; syncProblem(); }
-  else if (t.name === 'helped') { state.helped = t.value === 'yes'; syncHelped(); }
   else if (t.id === 'date-input') state.date = t.value;
   else return;
   $('#saved').hidden = true;
@@ -904,21 +872,13 @@ form.addEventListener('change', onInput);
 form.addEventListener('submit', e => e.preventDefault()); // Enter never sends a report by accident
 form.addEventListener('click', e => {
   const rmE = e.target.closest('[data-rm-entry]');
-  const rmH = e.target.closest('[data-rm-help]');
   if (rmE) { state.entries.splice(+rmE.dataset.rmEntry, 1); renderEntries(); refresh(); scheduleDraft(); }
-  if (rmH) { state.helps.splice(+rmH.dataset.rmHelp, 1); renderHelps(); refresh(); scheduleDraft(); }
 });
 $('#add-entry').addEventListener('click', () => {
   const prev = state.entries[state.entries.length - 1];
   state.entries.push({...blankEntry(), from: prev && prev.to ? prev.to : ''}); // the next job usually starts when the previous one ended
   renderEntries(); refresh(); scheduleDraft();
   const el = document.getElementById(`e-${state.entries.length - 1}-project`);
-  if (el) el.focus();
-});
-$('#add-help').addEventListener('click', () => {
-  state.helps.push(blankHelp());
-  renderHelps(); refresh(); scheduleDraft();
-  const el = document.getElementById(`h-${state.helps.length - 1}-who`);
   if (el) el.focus();
 });
 let clearArmed = null;
@@ -938,7 +898,7 @@ function resetForm() {
   editing = null;
   errorsShown = false;
   pendingId = null;
-  state = freshState({worker: me ? me.name : ''});
+  state = freshState({worker: me ? me.name : '', category: me ? me.category : ''});
   clearDraft();
   showErrors([]);
   renderForm(); refresh();
@@ -959,13 +919,6 @@ function validate() {
     else if (e.from && !entryMinutes(e)) bad.push([`e-${i}-to`, 'Ora e mbarimit duhet të jetë pas fillimit' + s]);
   });
   if (totalMinutes(state) > 1440) bad.push([`e-${state.entries.length - 1}-to`, 'Totali kalon 24 orë, kontrollo orët']);
-  if (state.helped === null) bad.push(['helped-no', 'Punëtorë ndihmës: zgjidh një opsion']);
-  if (state.helped === true) state.helps.forEach((h, i) => {
-    const s = state.helps.length > 1 ? ` (Kolegu ${i + 1})` : '';
-    if (!h.who.trim()) bad.push([`h-${i}-who`, 'Kam ndihmuar' + s]);
-    if (!h.category.trim()) bad.push([`h-${i}-category`, 'Kategoria e punëtorit' + s]);
-    if (!(Number(h.hours) > 0)) bad.push([`h-${i}-hours`, 'Koha e ndihmës' + s]);
-  });
   if (!state.problem) bad.push(['problem-none', 'Problematika: zgjidh një opsion']);
   if (state.problem === 'yes' && !state.prob.issue.trim()) bad.push(['p-issue', 'Problemi']);
   return bad;
@@ -1006,8 +959,8 @@ function serialize(s) {
     overtime: [],
     overtime_minutes: ot,
     total_minutes: totalMinutes(s),
-    helped: s.helped === true,
-    helps: s.helped === true ? s.helps.map(h => ({who: h.who.trim(), category: h.category.trim(), project: h.project.trim(), work: h.work.trim(), hours: Number(h.hours) || 0})) : [],
+    helped: false,
+    helps: [],
     problem: s.problem,
     prob: s.problem === 'yes' ? {project: s.prob.project.trim(), issue: s.prob.issue.trim(), missing: s.prob.missing.trim(), solution: s.prob.solution.trim()} : null
   };
@@ -1047,7 +1000,7 @@ async function submit() {
     const who = state.worker, when = fmtDate(state.date);
     editing = null;
     errorsShown = false;
-    state = freshState({worker: me.name});
+    state = freshState({worker: me.name, category: me.category});
     clearDraft();
     showErrors([]);
     renderForm(); refresh();
@@ -1161,7 +1114,7 @@ function inRange(d) {
 const rowFromDb = r => ({
   id: r.id, _uid: r.user_id, _key: r.id, date: str(r.date).slice(0, 10), worker: str(r.worker),
   entries: r.entries, pause: r.pause_minutes,
-  totalMinutes: r.total_minutes, helped: r.helped, helps: r.helps,
+  totalMinutes: r.total_minutes, category: r.category,
   problem: r.problem, prob: r.prob, createdAt: r.created_at
 });
 let loadSeq = 0;
@@ -1200,14 +1153,14 @@ async function loadTodayCount() {
 }
 async function loadSuggestions() {
   if (!sb || !me) return;
-  const {data, error} = await sb.from('reports').select('worker,entries,helps,prob').order('date', {ascending: false}).limit(300);
+  const {data, error} = await sb.from('reports').select('worker,entries,prob').order('date', {ascending: false}).limit(300);
   if (!error) { suggestRows = data || []; fillDatalists(); }
 }
 
 function haystack(r) {
   const parts = [r.worker];
   (Array.isArray(r.entries) ? r.entries : []).forEach(e => e && parts.push(e.project, e.done));
-  (Array.isArray(r.helps) ? r.helps : []).forEach(h => h && parts.push(h.who, h.category, h.project, h.work));
+  parts.push(catLabel(r.category));
   if (r.prob) parts.push(r.prob.project, r.prob.issue, r.prob.missing, r.prob.solution);
   return norm(parts.filter(Boolean).join(' '));
 }
@@ -1215,6 +1168,7 @@ function filtered() {
   const q = norm(filt.q.trim());
   return reports.filter(r => isISO(r.date) && inRange(r.date)
     && (!filt.worker || r._uid === filt.worker)
+    && (!filt.category || r.category === filt.category)
     && (!filt.problems || r.problem === 'yes')
     && (!q || haystack(r).includes(q)));
 }
@@ -1237,13 +1191,12 @@ function repHTML(r) {
   return `<details class="rep" data-id="${esc(r._key)}"${openIds.has(r._key) ? ' open' : ''}>
     <summary>
       <span class="rep-main">
-        <span class="rep-who">${esc(s.worker || 'Pa emër')}</span>
+        <span class="rep-who">${esc(s.worker || 'Pa emër')}${s.category ? ` <span class="rep-cat">· ${esc(catLabel(s.category))}</span>` : ''}</span>
         <span class="rep-proj">${esc(projects)}</span>
         ${prob ? `<span class="rep-issue"><b>Problem:</b> ${esc(s.prob.issue || '—')}</span>` : ''}
       </span>
       <span class="rep-side">
         ${ot ? `<span class="chip accent">+${esc(fmtHours(ot))} shtesë</span>` : ''}
-        ${s.helped ? '<span class="chip">Ndihmoi</span>' : ''}
         ${prob ? '<span class="chip bad">Problem</span>' : '<span class="chip ok">Pa probleme</span>'}
         <span class="rep-hrs">${tm ? fmtHours(tm) : '—'}</span>
       </span>
@@ -1279,7 +1232,7 @@ function renderArchive() {
   const otMin = rows.reduce((a, r) => a + overtimeMinutes(normalizeState(r)), 0);
   const nProb = rows.filter(r => r.problem === 'yes').length;
   const workers = new Set(rows.map(r => r._uid));
-  const byProject = new Map(), byWorker = new Map();
+  const byProject = new Map(), byWorker = new Map(), byCategory = new Map();
   rows.forEach(r => {
     const s = normalizeState(r);
     projectMinutes(s).forEach(({name, m}) => {
@@ -1289,13 +1242,16 @@ function renderArchive() {
     });
     const w = byWorker.get(r._uid) || {name: s.worker || 'Pa emër', m: 0};
     w.m += totalMinutes(s); byWorker.set(r._uid, w);
+    const ck = s.category || 'none';
+    const c = byCategory.get(ck) || {name: catLabel(s.category) || 'Pa kategori', m: 0};
+    c.m += totalMinutes(s); byCategory.set(ck, c);
   });
 
-  // Admin, today: active workers without a report yet
+  // Admin, today: active workers without a report yet (within the chosen category)
   let missing = '';
   if (isAdmin && filt.range === 'today' && dbState === 'ready') {
     const done = new Set(reports.filter(r => r.date === todayISO()).map(r => r._uid));
-    const team = members.filter(m => m.active && m.role === 'worker');
+    const team = members.filter(m => m.active && m.role === 'worker' && (!filt.category || m.category === filt.category));
     if (team.length) {
       const names = team.filter(m => !done.has(m.user_id)).map(m => m.name).sort(collator.compare);
       missing = names.length
@@ -1312,10 +1268,10 @@ function renderArchive() {
       <div class="stat${nProb ? ' alert' : ''}"><b>${nProb}</b> me probleme</div>
       ${isAdmin ? `<div class="stat"><b>${workers.size}</b> ${workers.size === 1 ? 'punëtor' : 'punëtorë'}</div>` : ''}
     </div>
-    <div class="breakdown${isAdmin ? '' : ' one'}">${barsHTML('Orët sipas projektit', byProject)}${isAdmin ? barsHTML('Orët sipas punëtorit', byWorker) : ''}</div>` : '');
+    <div class="breakdown${isAdmin ? '' : ' one'}">${barsHTML('Orët sipas projektit', byProject)}${isAdmin ? barsHTML('Orët sipas punëtorit', byWorker) + barsHTML('Orët sipas kategorisë', byCategory) : ''}</div>` : '');
 
   if (!rows.length) {
-    const nothingYet = filt.range === 'all' && !filt.q && !filt.worker && !filt.problems;
+    const nothingYet = filt.range === 'all' && !filt.q && !filt.worker && !filt.category && !filt.problems;
     list.innerHTML = nothingYet
       ? (isAdmin
         ? emptyHTML('Ende s’ka raporte', 'Raportet e punëtorëve shfaqen këtu sapo ata shtypin “Dërgo raportin”. Shto punëtorët te faqja “Punëtorët”.', '<button type="button" class="btn" data-go="team">Shko te Punëtorët</button>')
@@ -1343,18 +1299,13 @@ function fillFilters() {
 }
 function fillDatalists() {
   const uniq = arr => [...new Map(arr.map(v => str(v).trim()).filter(Boolean).map(v => [norm(v), v])).values()].sort(collator.compare);
-  const P = [], W = [], K = [];
+  const P = [];
   [...suggestRows, ...reports].forEach(r => {
-    W.push(r.worker);
     (Array.isArray(r.entries) ? r.entries : []).forEach(e => { if (e) P.push(e.project); });
-    (Array.isArray(r.helps) ? r.helps : []).forEach(h => { if (h) { W.push(h.who); P.push(h.project); K.push(h.category); } });
     if (r.prob) P.push(r.prob.project);
   });
-  members.forEach(m => W.push(m.name));
   const opts = a => a.slice(0, 300).map(v => `<option value="${esc(v)}"></option>`).join('');
-  $('#dl-workers').innerHTML = opts(uniq(W).filter(n => !me || norm(n) !== norm(me.name)));
   $('#dl-projects').innerHTML = opts(uniq(P));
-  $('#dl-categories').innerHTML = opts([...CATEGORIES, ...uniq(K).filter(v => !CATEGORIES.some(c => norm(c) === norm(v)))]);
 }
 
 /* archive events */
@@ -1371,6 +1322,7 @@ $('#f-date').addEventListener('change', e => {
   renderArchive(); loadReports();
 });
 $('#f-worker').addEventListener('change', e => { filt.worker = e.target.value; renderArchive(); });
+$('#f-category').addEventListener('change', e => { filt.category = e.target.value; renderArchive(); });
 $('#f-problems').addEventListener('change', e => { filt.problems = e.target.checked; renderArchive(); });
 let qTimer = null;
 $('#f-q').addEventListener('input', e => { clearTimeout(qTimer); qTimer = setTimeout(() => { filt.q = e.target.value; renderArchive(); }, 150); });
@@ -1385,8 +1337,8 @@ $('#view-archive').addEventListener('click', e => {
   const go = e.target.closest('[data-go]');
   if (go) { showView(go.dataset.go); return; }
   if (e.target.closest('[data-show-all]')) {
-    filt = {range: 'all', date: '', worker: '', problems: false, q: ''};
-    $('#f-problems').checked = false; $('#f-q').value = ''; fillFilters();
+    filt = {range: 'all', date: '', worker: '', category: '', problems: false, q: ''};
+    $('#f-problems').checked = false; $('#f-q').value = ''; $('#f-category').value = ''; fillFilters();
     renderArchive(); loadReports(); return;
   }
   const btn = e.target.closest('[data-act]');
@@ -1439,24 +1391,19 @@ function csvCell(v) {
 $('#export-btn').addEventListener('click', () => {
   const rows = filtered().slice().sort((a, b) => a.date.localeCompare(b.date) || collator.compare(a.worker, b.worker));
   if (!rows.length) { toast('Nuk ka raporte për të shkarkuar me këtë filtër.'); return; }
-  const head = ['Data','Përgjegjësi','Projekti','Çfarë realizova sot','Ora nga','Ora deri','Orë',
+  const head = ['Data','Përgjegjësi','Kategoria','Projekti','Çfarë realizova sot','Ora nga','Ora deri','Orë',
     'Pushimi (orë)','Orë pune','Orë shtesë','Totali i ditës',
-    'Kam ndihmuar','Kategoria','Projekti (ndihmë)','Puna (ndihmë)','Koha e ndihmës (orë)',
     'Problem','Projekti (problem)','Problemi','Çfarë mungonte','Zgjidhja'];
   const lines = [head.map(csvCell).join(';')];
-  const join = (list, k) => list.map(x => x[k]).join(' | ');
   rows.forEach(r => {
     const s = normalizeState(r);
-    // Day totals, helpers and problem go on the report's first row only, so sums in Excel stay correct.
+    // Day totals and the problem go on the report's first row only, so sums in Excel stay correct.
     const day = [dec(s.pause / 60), dec(regularMinutes(s) / 60), dec(overtimeMinutes(s) / 60), dec(totalMinutes(s) / 60)];
-    const help = s.helped
-      ? [join(s.helps, 'who'), join(s.helps, 'category'), join(s.helps, 'project'), join(s.helps, 'work'), dec(s.helps.reduce((a, h) => a + (Number(h.hours) || 0), 0))]
-      : ['', '', '', '', ''];
     const prob = s.problem === 'yes' ? ['Po', s.prob.project, s.prob.issue, s.prob.missing, s.prob.solution] : ['Jo', '', '', '', ''];
     s.entries.forEach((e, i) => {
       const first = i === 0;
-      lines.push([fmtDate(s.date), s.worker, e.project, e.done, e.from, e.to, dec(entryMinutes(e) / 60),
-        ...(first ? day : ['', '', '', '']), ...(first ? help : ['', '', '', '', '']), ...(first ? prob : ['', '', '', '', ''])].map(csvCell).join(';'));
+      lines.push([fmtDate(s.date), s.worker, catLabel(s.category), e.project, e.done, e.from, e.to, dec(entryMinutes(e) / 60),
+        ...(first ? day : ['', '', '', '']), ...(first ? prob : ['', '', '', '', ''])].map(csvCell).join(';'));
     });
   });
   downloadFile(`ArtGent-raporte-${todayISO()}.csv`, '﻿' + lines.join('\r\n'), 'text/csv;charset=utf-8');
@@ -1571,6 +1518,10 @@ async function buildPdf(list, meta) {
     ensure(26); // keep the header band together with the first lines
     doc.setFillColor(...BAND); doc.rect(M, y, CW, 9, 'F');
     font('bold', 11, INK); doc.text(pdfText(s.worker || 'Pa emër'), X, y + 6);
+    if (s.category) {
+      const nw = doc.getTextWidth(pdfText(s.worker || 'Pa emër'));
+      font('normal', 10, MUTED); doc.text(pdfText(`·  ${catLabel(s.category)}`), X + nw + 3, y + 6);
+    }
     font('normal', 10, MUTED);
     const otm = overtimeMinutes(s);
     const right = `${fmtDate(s.date)}  ·  ${tm ? fmtHours(tm) : '-'}${otm ? ` (${fmtHours(otm)} shtesë)` : ''}`;
@@ -1580,7 +1531,8 @@ async function buildPdf(list, meta) {
       font('bold', 9, BAD); doc.text('PROBLEM', PW - M - 3 - rw - 5, y + 6, {align: 'right'});
     }
     y += 12;
-    buildLines(s).slice(3).forEach(drawLine); // title, date and name are already in the band
+    // title, date, name and category are already in the band
+    buildLines(s).slice(3).filter(l => l.k !== 'Kategoria').forEach(drawLine);
     y += 3;
     doc.setDrawColor(...RULE); doc.setLineWidth(0.2); doc.line(M, y, PW - M, y);
     y += 6;
@@ -1667,6 +1619,7 @@ const FN_MSG = {
   cannot_change_self: 'Nuk mund ta çaktivizosh llogarinë tënde.',
   not_found: 'Llogaria nuk u gjet.',
   network: 'Nuk ka lidhje me serverin. Provo sërish.',
+  category_invalid: 'Zgjidh kategorinë e llogarisë.',
   recovery_invalid: 'Email-i ose kodi nuk është i saktë, ose kodi ka skaduar. Kontrollo kodin ose kërko një të ri.'
 };
 const fnMsg = c => FN_MSG[c] || 'Diçka nuk funksionoi. Provo sërish.';
@@ -1681,7 +1634,7 @@ async function invokeFn(body) {
 }
 async function loadMembers() {
   if (!sb || !isAdmin) return;
-  const {data, error} = await sb.from('members').select('user_id,name,email,role,active,created_at');
+  const {data, error} = await sb.from('members').select('user_id,name,email,role,active,category,created_at');
   if (error) { if (view === 'team') $('#team-list').innerHTML = emptyHTML('Nuk u ngarkuan', 'Kontrollo internetin dhe provo sërish.'); return; }
   members = data || [];
   renderTeam(); fillFilters(); fillDatalists();
@@ -1696,7 +1649,11 @@ function memberHTML(m) {
   return `<div class="member${m.active ? '' : ' off'}" data-uid="${esc(m.user_id)}">
     <div class="member-main"><span class="member-name">${esc(m.name)}${self ? ' <span class="muted">(ti)</span>' : ''}</span><span class="member-email">${esc(m.email || '')}</span></div>
     <div class="member-actions">
-      ${m.role === 'admin' ? '<span class="chip accent">Administrator</span>' : ''}
+      ${m.role === 'admin' ? '<span class="chip accent">Administrator</span>' : `
+      <select class="cat-select${m.category ? '' : ' missing-cat'}" data-team-cat aria-label="Kategoria e ${esc(m.name)}">
+        ${m.category ? '' : '<option value="" selected>Pa kategori</option>'}
+        ${Object.entries(CATEGORIES).map(([k, c]) => `<option value="${k}"${m.category === k ? ' selected' : ''}>${esc(c.label)}</option>`).join('')}
+      </select>`}
       ${m.active ? '' : '<span class="chip bad">Çaktivizuar</span>'}
       <button type="button" class="btn sm" data-team="pw">Ndrysho fjalëkalimin</button>
       ${toggle}
@@ -1732,16 +1689,18 @@ $('#add-worker').addEventListener('submit', async e => {
   e.preventDefault();
   const msg = $('#nw-msg'), btn = $('#nw-btn');
   const name = $('#nw-name').value.trim(), email = $('#nw-email').value.trim().toLowerCase(), password = $('#nw-pass').value;
+  const category = $('#nw-cat').value;
   if (!name) { msg.textContent = 'Shkruaj emrin e punëtorit.'; $('#nw-name').focus(); return; }
   if (!EMAIL_RE.test(email)) { msg.textContent = 'Email-i nuk është i saktë.'; $('#nw-email').focus(); return; }
+  if (!CATEGORIES[category]) { msg.textContent = 'Zgjidh kategorinë e llogarisë.'; $('#nw-cat').focus(); return; }
   if (password.length < 8) { msg.textContent = 'Fjalëkalimi duhet të ketë të paktën 8 shenja. Shtyp “Gjenero” për një të gatshëm.'; $('#nw-pass').focus(); return; }
   msg.textContent = '';
   btn.disabled = true; btn.textContent = 'Po shtohet…';
-  const res = await invokeFn({action: 'create', name, email, password});
+  const res = await invokeFn({action: 'create', name, email, password, category});
   btn.disabled = false; btn.textContent = 'Shto punëtorin';
   if (res.error) { msg.textContent = fnMsg(res.error); return; }
-  teamUi.cred = {title: `Llogaria për ${name} u krijua. Jepja këto të dhëna:`, email, password};
-  $('#nw-name').value = ''; $('#nw-email').value = ''; $('#nw-pass').value = '';
+  teamUi.cred = {title: `Llogaria për ${name} (${catLabel(category)}) u krijua. Jepja këto të dhëna:`, email, password};
+  $('#nw-name').value = ''; $('#nw-email').value = ''; $('#nw-pass').value = ''; $('#nw-cat').value = '';
   toast('Punëtori u shtua');
   renderTeam(); loadMembers();
 });
@@ -1773,6 +1732,18 @@ $('#view-team').addEventListener('click', async e => {
     else toast(m.active ? `${m.name} u çaktivizua` : `${m.name} u aktivizua`);
     loadMembers();
   }
+});
+// Admin changes a worker's category straight from the list.
+$('#view-team').addEventListener('change', async e => {
+  const sel = e.target.closest('[data-team-cat]');
+  if (!sel || !CATEGORIES[sel.value]) return;
+  const uid = sel.closest('[data-uid]').dataset.uid;
+  const m = members.find(x => x.user_id === uid);
+  sel.disabled = true;
+  const res = await invokeFn({action: 'set_category', user_id: uid, category: sel.value});
+  if (res.error) toast(fnMsg(res.error), 5000);
+  else toast(`${m ? m.name : 'Punëtori'} tani është ${catLabel(sel.value)}`);
+  loadMembers();
 });
 $('#view-team').addEventListener('submit', async e => {
   const f = e.target.closest('[data-team-form="pw"]');
@@ -1901,7 +1872,7 @@ $('#auth-recover').addEventListener('submit', async e => {
 async function enterApp(user) {
   showView('auth');
   setAuthLoading('Po hapet…');
-  const {data, error} = await sb.from('members').select('user_id,name,email,role,active').eq('user_id', user.id).maybeSingle();
+  const {data, error} = await sb.from('members').select('user_id,name,email,role,active,category').eq('user_id', user.id).maybeSingle();
   if (error) { setAuthLoading('Nuk u lidh me serverin. Kontrollo internetin dhe rifresko faqen.'); return; }
   if (!data || !data.active) {
     $('#inactive-text').textContent = data
@@ -1917,9 +1888,9 @@ async function enterApp(user) {
   if (saved && saved.state) {
     state = normalizeState(saved.state);
     editing = saved.editing && saved.editing.id ? saved.editing : null;
-    if (!editing) { state.worker = me.name; if (!hasContent(state)) state.date = todayISO(); }
+    if (!editing) { state.worker = me.name; state.category = me.category || ''; if (!hasContent(state)) state.date = todayISO(); }
   } else {
-    state = freshState({worker: me.name});
+    state = freshState({worker: me.name, category: me.category});
     editing = null;
   }
   errorsShown = false;
@@ -1934,7 +1905,12 @@ async function enterApp(user) {
   if (isAdmin) loadMembers();
 }
 function applyRole() {
-  $('#role-badge').hidden = !isAdmin;
+  const cat = me && CATEGORIES[me.category];
+  // Admin sees "Administrator"; a worker sees his category in the top bar and a panel titled for it.
+  $('#role-badge').textContent = isAdmin ? 'Administrator' : cat ? cat.label : '';
+  $('#role-badge').hidden = !isAdmin && !cat;
+  $('#form-title').textContent = !isAdmin && cat ? cat.panel : 'Raporti ditor';
+  $('#f-category').hidden = !isAdmin;
   $('#tab-team').hidden = !isAdmin;
   $('#who-name').textContent = me ? me.name : '';
   $('#account-email').textContent = me && me.email ? `Hyrë si ${me.email}` : '';
@@ -1951,7 +1927,7 @@ function leaveApp() {
   me = null; isAdmin = false;
   reports = []; members = []; suggestRows = []; todayCount = 0;
   editing = null; pendingId = null; state = freshState();
-  filt.worker = ''; teamUi.pw = teamUi.toggle = teamUi.cred = null;
+  filt.worker = ''; filt.category = ''; teamUi.pw = teamUi.toggle = teamUi.cred = null;
   openIds.clear(); confirmDel = null;
   $('#tab-count').textContent = '';
   $('#role-badge').hidden = true;
