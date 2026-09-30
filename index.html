@@ -376,7 +376,7 @@ input::placeholder,textarea::placeholder{color:var(--muted);opacity:.75}
           </div>
           <div class="grid2">
             <div class="field"><label for="date-input">Data</label><input type="date" id="date-input"></div>
-            <div class="field"><label for="worker">Punëtori</label><input id="worker" readonly tabindex="-1"></div>
+            <div class="field"><label for="worker">Përgjegjësi</label><input id="worker" readonly tabindex="-1"></div>
           </div>
           <div id="entries"></div>
           <button type="button" class="add" id="add-entry">+ Shto një punë tjetër (projekt ose proces tjetër)</button>
@@ -449,6 +449,7 @@ input::placeholder,textarea::placeholder{color:var(--muted);opacity:.75}
       <input type="search" id="f-q" placeholder="Kërko projekt, klient, proces…" aria-label="Kërko">
       <div class="btn-row push">
         <button type="button" class="btn sm" id="refresh-btn">Rifresko</button>
+        <button type="button" class="btn sm" id="pdf-btn" hidden>Shkarko PDF</button>
         <button type="button" class="btn sm" id="export-btn">Shkarko CSV</button>
       </div>
     </div>
@@ -513,8 +514,6 @@ input::placeholder,textarea::placeholder{color:var(--muted);opacity:.75}
 <datalist id="dl-workers"></datalist>
 <datalist id="dl-projects"></datalist>
 <datalist id="dl-clients"></datalist>
-<datalist id="dl-elements"></datalist>
-<datalist id="dl-processes"></datalist>
 
 <noscript><p class="wrap">Kjo faqe kërkon JavaScript.</p></noscript>
 
@@ -544,8 +543,6 @@ const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 const DAYS = ['e Diel','e Hënë','e Martë','e Mërkurë','e Enjte','e Premte','e Shtunë'];
 const MONTHS = ['janar','shkurt','mars','prill','maj','qershor','korrik','gusht','shtator','tetor','nëntor','dhjetor'];
-const PROCESSES = ['Matje te klienti','Projektim','Prerje','Kantim','Shpim / CNC','Frezim','Zmerilim','Lyerje / Llakim','Montim në punëtori','Paketim','Transport','Montim te klienti','Riparim / Servis'];
-const ELEMENTS = ['Kuzhinë','Garderobë','Dollap','Komodinë','Krevat','Tavolinë','Karrige','Raft','Njësi TV','Mobilje banjoje','Derë','Banak','Tavolinë pune'];
 
 const iso = d => d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
 const todayISO = () => iso(new Date());
@@ -589,7 +586,7 @@ function genPassword() {
 }
 
 /* ---------- state ---------- */
-const blankEntry = () => ({project: '', client: '', element: '', process: '', done: '', from: '', to: ''});
+const blankEntry = () => ({project: '', client: '', done: '', from: '', to: ''});
 const blankHelp = () => ({who: '', project: '', work: '', hours: ''});
 const blankProb = () => ({project: '', issue: '', missing: '', solution: ''});
 const freshState = (keep = {}) => ({date: keep.date || todayISO(), worker: keep.worker || '', entries: [blankEntry()], helped: null, helps: [blankHelp()], problem: '', prob: blankProb()});
@@ -637,14 +634,12 @@ function buildLines(s) {
   const L = [];
   L.push({h: 'RAPORTI DITOR · ArtGent'});
   L.push({k: 'Data', v: fmtDate(s.date), blankV: '__/__/____'});
-  L.push({k: 'Punëtori', v: s.worker.trim()});
+  L.push({k: 'Përgjegjësi', v: s.worker.trim()});
   const multi = s.entries.length > 1;
   s.entries.forEach((e, i) => {
     if (multi) { L.push({gap: 1}); L.push({sub: `Puna ${i + 1}`}); }
     L.push({k: 'Projekti', v: e.project.trim()});
     L.push({k: 'Klienti', v: e.client.trim()});
-    L.push({k: 'Elementi/Mobilja', v: e.element.trim()});
-    L.push({k: 'Procesi', v: e.process.trim()});
     L.push({k: 'Çfarë realizova sot', v: e.done.trim()});
     const m = entryMinutes(e);
     L.push({k: 'Ora', v: e.from && e.to ? `${e.from} – ${e.to}${multi && m ? ` (${fmtHours(m)})` : ''}` : '', blankV: `${e.from || '__'} – ${e.to || '__'}`});
@@ -706,8 +701,6 @@ function entryHTML(e, i, n) {
     <div class="grid2">
       <div class="field"><label for="${id('project')}">Projekti</label><input ${inp('project', 'list="dl-projects" placeholder="p.sh. Apartamenti në Dardani"')} value="${esc(e.project)}"></div>
       <div class="field"><label for="${id('client')}">Klienti <span class="opt">opsionale</span></label><input ${inp('client', 'list="dl-clients" placeholder="Emri i klientit"')} value="${esc(e.client)}"></div>
-      <div class="field"><label for="${id('element')}">Elementi / Mobilja <span class="opt">opsionale</span></label><input ${inp('element', 'list="dl-elements" placeholder="p.sh. Garderobë me 3 dyer"')} value="${esc(e.element)}"></div>
-      <div class="field"><label for="${id('process')}">Procesi</label><input ${inp('process', 'list="dl-processes" placeholder="p.sh. Kantim"')} value="${esc(e.process)}"></div>
     </div>
     <div class="field"><label for="${id('done')}">Çfarë realizova sot</label><textarea ${inp('done', 'rows="3" placeholder="p.sh. Preva dhe kantova 14 pjesë për korpuset e poshtme"')}>${esc(e.done)}</textarea></div>
     <div class="time-row">
@@ -855,7 +848,6 @@ function validate() {
   state.entries.forEach((e, i) => {
     const s = multi ? ` (Puna ${i + 1})` : '';
     if (!e.project.trim()) bad.push([`e-${i}-project`, 'Projekti' + s]);
-    if (!e.process.trim()) bad.push([`e-${i}-process`, 'Procesi' + s]);
     if (!e.done.trim()) bad.push([`e-${i}-done`, 'Çfarë realizova sot' + s]);
     if (!e.from) bad.push([`e-${i}-from`, 'Ora e fillimit' + s]);
     if (!e.to) bad.push([`e-${i}-to`, 'Ora e mbarimit' + s]);
@@ -896,7 +888,7 @@ $('#errbox').addEventListener('click', e => {
 /* ---------- save ---------- */
 function serialize(s) {
   const entries = s.entries.map(e => ({
-    project: e.project.trim(), client: e.client.trim(), element: e.element.trim(), process: e.process.trim(),
+    project: e.project.trim(), client: e.client.trim(),
     done: e.done.trim(), from: e.from, to: e.to, minutes: entryMinutes(e)
   }));
   return {
@@ -1102,7 +1094,7 @@ async function loadSuggestions() {
 
 function haystack(r) {
   const parts = [r.worker];
-  (Array.isArray(r.entries) ? r.entries : []).forEach(e => e && parts.push(e.project, e.client, e.element, e.process, e.done));
+  (Array.isArray(r.entries) ? r.entries : []).forEach(e => e && parts.push(e.project, e.client, e.done));
   (Array.isArray(r.helps) ? r.helps : []).forEach(h => h && parts.push(h.who, h.project, h.work));
   if (r.prob) parts.push(r.prob.project, r.prob.issue, r.prob.missing, r.prob.solution);
   return norm(parts.filter(Boolean).join(' '));
@@ -1147,6 +1139,7 @@ function repHTML(r) {
       <div class="ticket compact">${linesHTML(buildLines(s).slice(1))}</div>
       <div class="rep-actions">
         <button type="button" class="btn sm" data-act="copy">Kopjo</button>
+        ${isAdmin ? '<button type="button" class="btn sm" data-act="pdf">PDF</button>' : ''}
         ${can ? '<button type="button" class="btn sm" data-act="edit">Ndrysho</button>' : ''}
         ${can ? (confirming
           ? '<span class="confirm">Fshije përgjithmonë? <button type="button" class="btn sm danger" data-act="del-yes">Po, fshije</button><button type="button" class="btn sm ghost" data-act="del-no">Anulo</button></span>'
@@ -1235,10 +1228,10 @@ function fillFilters() {
 }
 function fillDatalists() {
   const uniq = arr => [...new Map(arr.map(v => str(v).trim()).filter(Boolean).map(v => [norm(v), v])).values()].sort(collator.compare);
-  const P = [], C = [], W = [], E = [], R = [];
+  const P = [], C = [], W = [];
   [...suggestRows, ...reports].forEach(r => {
     W.push(r.worker);
-    (Array.isArray(r.entries) ? r.entries : []).forEach(e => { if (!e) return; P.push(e.project); C.push(e.client); E.push(e.element); R.push(e.process); });
+    (Array.isArray(r.entries) ? r.entries : []).forEach(e => { if (!e) return; P.push(e.project); C.push(e.client); });
     (Array.isArray(r.helps) ? r.helps : []).forEach(h => { if (h) { W.push(h.who); P.push(h.project); } });
     if (r.prob) P.push(r.prob.project);
   });
@@ -1247,8 +1240,6 @@ function fillDatalists() {
   $('#dl-workers').innerHTML = opts(uniq(W).filter(n => !me || norm(n) !== norm(me.name)));
   $('#dl-projects').innerHTML = opts(uniq(P));
   $('#dl-clients').innerHTML = opts(uniq(C));
-  $('#dl-elements').innerHTML = opts(uniq([...ELEMENTS, ...E]));
-  $('#dl-processes').innerHTML = opts([...PROCESSES, ...uniq(R).filter(v => !PROCESSES.some(p => norm(p) === norm(v)))]);
 }
 
 /* archive events */
@@ -1290,6 +1281,7 @@ $('#view-archive').addEventListener('click', e => {
   if (!r) return;
   const act = btn.dataset.act;
   if (act === 'copy') copyText(reportText(normalizeState(r)));
+  else if (act === 'pdf') reportPdf(r, btn);
   else if (act === 'edit') startEdit(r);
   else if (act === 'del') { confirmDel = key; renderArchive(); }
   else if (act === 'del-no') { confirmDel = null; renderArchive(); }
@@ -1331,7 +1323,7 @@ function csvCell(v) {
 $('#export-btn').addEventListener('click', () => {
   const rows = filtered().slice().sort((a, b) => a.date.localeCompare(b.date) || collator.compare(a.worker, b.worker));
   if (!rows.length) { toast('Nuk ka raporte për të shkarkuar me këtë filtër.'); return; }
-  const head = ['Data','Punëtori','Projekti','Klienti','Elementi/Mobilja','Procesi','Çfarë realizova sot','Ora nga','Ora deri','Orë',
+  const head = ['Data','Përgjegjësi','Projekti','Klienti','Çfarë realizova sot','Ora nga','Ora deri','Orë',
     'Kam ndihmuar','Projekti (ndihmë)','Puna (ndihmë)','Koha e ndihmës (orë)','Problem','Projekti (problem)','Problemi','Çfarë mungonte','Zgjidhja'];
   const lines = [head.map(csvCell).join(';')];
   rows.forEach(r => {
@@ -1341,12 +1333,185 @@ $('#export-btn').addEventListener('click', () => {
       : ['', '', '', ''];
     const prob = s.problem === 'yes' ? ['Po', s.prob.project, s.prob.issue, s.prob.missing, s.prob.solution] : ['Jo', '', '', '', ''];
     s.entries.forEach((e, i) => {
-      lines.push([fmtDate(s.date), s.worker, e.project, e.client, e.element, e.process, e.done, e.from, e.to, dec(entryMinutes(e) / 60),
+      lines.push([fmtDate(s.date), s.worker, e.project, e.client, e.done, e.from, e.to, dec(entryMinutes(e) / 60),
         ...(i === 0 ? help : ['', '', '', '']), ...(i === 0 ? prob : ['', '', '', '', ''])].map(csvCell).join(';'));
     });
   });
   downloadFile(`ArtGent-raporte-${todayISO()}.csv`, '﻿' + lines.join('\r\n'), 'text/csv;charset=utf-8');
 });
+
+/* ---------- PDF (admin) ----------
+   jsPDF loads only when an admin asks for a PDF, so workers never download it. */
+const JSPDF_SRC = 'https://cdnjs.cloudflare.com/ajax/libs/jspdf/3.0.3/jspdf.umd.min.js';
+let jspdfPromise = null;
+function loadJsPDF() {
+  if (window.jspdf && window.jspdf.jsPDF) return Promise.resolve(window.jspdf.jsPDF);
+  if (!jspdfPromise) jspdfPromise = new Promise((resolve, reject) => {
+    const s = document.createElement('script');
+    s.src = JSPDF_SRC;
+    s.async = true;
+    s.onload = () => (window.jspdf && window.jspdf.jsPDF ? resolve(window.jspdf.jsPDF) : reject(new Error('jspdf')));
+    s.onerror = () => { jspdfPromise = null; reject(new Error('jspdf')); };
+    document.head.appendChild(s);
+  });
+  return jspdfPromise;
+}
+// The built-in PDF font covers Latin-1 (ë, ç are fine); swap the few characters outside it.
+const pdfText = s => str(s)
+  .replace(/☑/g, '[X]').replace(/☐/g, '[ ]')
+  .replace(/[–—]/g, '-').replace(/[“”„]/g, '"').replace(/[‘’]/g, "'").replace(/…/g, '...')
+  .replace(/[^\n\x20-\xFF]/g, '?');
+const fileSafe = s => str(s).normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^A-Za-z0-9._-]+/g, '-').replace(/^-+|-+$/g, '') || 'raport';
+const hhmm = () => { const d = new Date(); return String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0'); };
+
+function rangeLabel() {
+  const t = todayISO();
+  switch (filt.range) {
+    case 'today': return `Sot, ${fmtLongDate(t)}`;
+    case 'yesterday': return `Dje, ${fmtLongDate(addDaysISO(t, -1))}`;
+    case 'week': { const s = weekStartISO(); return `Java ${fmtDate(s)} - ${fmtDate(addDaysISO(s, 6))}`; }
+    case 'month': { const d = parseISO(t); return `Muaji ${MONTHS[d.getMonth()]} ${d.getFullYear()}`; }
+    case 'date': return fmtLongDate(filt.date);
+    default: return 'Të gjitha raportet';
+  }
+}
+function filterNote() {
+  const parts = [];
+  if (filt.worker) {
+    const m = members.find(x => x.user_id === filt.worker);
+    const r = reports.find(x => x._uid === filt.worker);
+    parts.push(`Përgjegjësi: ${m ? m.name : r ? r.worker : ''}`);
+  }
+  if (filt.problems) parts.push('vetëm me probleme');
+  if (filt.q.trim()) parts.push(`kërkimi: "${filt.q.trim()}"`);
+  return parts.join(' · ');
+}
+
+async function buildPdf(list, meta) {
+  const JsPDF = await loadJsPDF();
+  const doc = new JsPDF({unit: 'mm', format: 'a4', compress: true});
+  const PW = 210, PH = 297, M = 16, CW = PW - 2 * M, BOTTOM = PH - 18, LH = 4.6;
+  const X = M + 3, TW = CW - 6;
+  const INK = [24, 32, 29], MUTED = [91, 104, 98], ACCENT = [29, 106, 83], BAD = [178, 58, 46], RULE = [210, 216, 210], BAND = [236, 238, 233];
+  doc.setLineHeightFactor(1.3);
+  let y = M;
+  const ensure = h => { if (y + h > BOTTOM) { doc.addPage(); y = M; } };
+  const font = (style, size, color) => { doc.setFont('helvetica', style); doc.setFontSize(size); doc.setTextColor(...color); };
+
+  // Title block
+  font('bold', 20, ACCENT); doc.text('ARTGENT', M, y + 7);
+  font('normal', 9, MUTED); doc.text(pdfText(`Krijuar më ${fmtDate(todayISO())}, ora ${hhmm()}`), PW - M, y + 7, {align: 'right'});
+  font('bold', 13, INK); doc.text(pdfText(meta.title), M, y + 14);
+  font('normal', 10, MUTED);
+  let hy = y + 20;
+  [meta.subtitle, meta.note, meta.summary].filter(Boolean).forEach(t => { doc.text(pdfText(t), M, hy); hy += 5; });
+  y = hy;
+  doc.setDrawColor(...INK); doc.setLineWidth(0.6); doc.line(M, y, PW - M, y);
+  y += 7;
+
+  // One wrapped "Label: value" line, breaking across pages when needed
+  function keyValue(label, value, strong, color) {
+    font('normal', 10, MUTED);
+    const key = `${label}: `;
+    const kw = doc.getTextWidth(key);
+    const wide = kw > TW * 0.45;
+    font(strong ? 'bold' : 'normal', 10, color || INK);
+    const lines = doc.splitTextToSize(pdfText(value || '-'), wide ? TW - 4 : TW - kw);
+    ensure(LH * (wide ? 2 : 1));
+    font('normal', 10, MUTED); doc.text(pdfText(wide ? label + ':' : key), X, y + 3.5);
+    if (wide) y += LH;
+    font(strong ? 'bold' : 'normal', 10, color || INK);
+    lines.forEach((ln, i) => {
+      if (i) ensure(LH);
+      doc.text(ln, wide ? X + 4 : X + kw, y + 3.5);
+      y += LH;
+    });
+  }
+  function drawLine(l) {
+    if (l.gap) { y += 2; return; }
+    if (l.h) { ensure(LH + 2); y += 1; font('bold', 9, ACCENT); doc.text(pdfText(l.h), X, y + 3.5); y += LH; return; }
+    if (l.sub) { ensure(LH); font('bold', 10, ACCENT); doc.text(pdfText(l.sub), X, y + 3.5); y += LH; return; }
+    if (l.t) {
+      const alert = l.t.startsWith('☑ Pati problem');
+      font(alert ? 'bold' : 'normal', 10, alert ? BAD : INK);
+      doc.splitTextToSize(pdfText(l.t), TW).forEach(ln => { ensure(LH); doc.text(ln, X, y + 3.5); y += LH; });
+      return;
+    }
+    keyValue(l.k, l.v, l.strong, l.k === 'Problemi' ? BAD : l.strong ? ACCENT : INK);
+  }
+  function reportBlock(r) {
+    const s = normalizeState(r);
+    const tm = totalMinutes(s);
+    ensure(26); // keep the header band together with the first lines
+    doc.setFillColor(...BAND); doc.rect(M, y, CW, 9, 'F');
+    font('bold', 11, INK); doc.text(pdfText(s.worker || 'Pa emër'), X, y + 6);
+    font('normal', 10, MUTED);
+    const right = `${fmtDate(s.date)}  ·  ${tm ? fmtHours(tm) : '-'}`;
+    doc.text(pdfText(right), PW - M - 3, y + 6, {align: 'right'});
+    if (s.problem === 'yes') {
+      const rw = doc.getTextWidth(pdfText(right));
+      font('bold', 9, BAD); doc.text('PROBLEM', PW - M - 3 - rw - 5, y + 6, {align: 'right'});
+    }
+    y += 12;
+    buildLines(s).slice(3).forEach(drawLine); // title, date and name are already in the band
+    y += 3;
+    doc.setDrawColor(...RULE); doc.setLineWidth(0.2); doc.line(M, y, PW - M, y);
+    y += 6;
+  }
+
+  let lastDate = null;
+  list.forEach(r => {
+    if (meta.groupByDay && r.date !== lastDate) {
+      lastDate = r.date;
+      ensure(36);
+      font('bold', 12, INK); doc.text(pdfText(fmtLongDate(r.date).toUpperCase()), M, y + 4.5);
+      y += 9;
+    }
+    reportBlock(r);
+  });
+  if (!list.length) { font('normal', 11, MUTED); doc.text('Nuk ka raporte.', M, y + 5); }
+
+  const pages = doc.getNumberOfPages();
+  for (let i = 1; i <= pages; i++) {
+    doc.setPage(i);
+    font('normal', 8.5, MUTED);
+    doc.text('ArtGent · Raporti ditor', M, PH - 10);
+    doc.text(`Faqja ${i} / ${pages}`, PW - M, PH - 10, {align: 'right'});
+  }
+  return doc;
+}
+
+async function runPdf(btn, work) {
+  const label = btn.textContent;
+  btn.disabled = true; btn.textContent = 'Po krijohet…';
+  try { await work(); }
+  catch (e) { toast('PDF nuk u krijua. Kontrollo internetin dhe provo sërish.', 5000); }
+  finally { btn.disabled = false; btn.textContent = label; }
+}
+$('#pdf-btn').addEventListener('click', e => {
+  if (!isAdmin) return;
+  const rows = filtered().slice().sort((a, b) => a.date.localeCompare(b.date) || collator.compare(a.worker, b.worker) || str(a.createdAt).localeCompare(str(b.createdAt)));
+  if (!rows.length) { toast('Nuk ka raporte për PDF me këtë filtër.'); return; }
+  runPdf(e.currentTarget, async () => {
+    const tMin = rows.reduce((a, r) => a + totalMinutes(normalizeState(r)), 0);
+    const nProb = rows.filter(r => r.problem === 'yes').length;
+    const doc = await buildPdf(rows, {
+      title: 'Raportet ditore',
+      subtitle: rangeLabel(),
+      note: filterNote(),
+      summary: `${plural(rows.length, 'raport', 'raporte')} · ${dec(tMin / 60)} orë gjithsej · ${nProb} me probleme`,
+      groupByDay: true
+    });
+    doc.save(`ArtGent-raporte-${fileSafe(rangeLabel())}.pdf`);
+  });
+});
+function reportPdf(r, btn) {
+  if (!isAdmin) return;
+  runPdf(btn, async () => {
+    const doc = await buildPdf([r], {title: 'Raporti ditor', subtitle: fmtLongDate(r.date)});
+    doc.save(`Raporti-${fileSafe(r.worker)}-${r.date}.pdf`);
+  });
+}
 
 /* own password */
 $('#own-pw').addEventListener('submit', async e => {
@@ -1611,6 +1776,7 @@ function applyRole() {
     ? 'Raportet e të gjithë punëtorëve, të grupuara sipas ditës. Çdo punëtor sheh vetëm raportet e veta.'
     : 'Raportet që ke dërguar ti. I sheh vetëm ti dhe administratori.';
   $('#f-worker').hidden = !isAdmin;
+  $('#pdf-btn').hidden = !isAdmin;
   $('#saved-go').textContent = isAdmin ? 'Shiko në arkivë' : 'Shiko raportet e mia';
 }
 function leaveApp() {
