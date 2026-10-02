@@ -816,6 +816,7 @@ function syncProblem() {
 }
 function renderForm() {
   $('#date-input').value = state.date;
+  $('#date-input').disabled = !!editing && !isAdmin; // a worker's edit stays on the report's own day
   $('#worker').value = state.worker;
   renderEntries();
   $('#pause').value = String(state.pause);
@@ -973,6 +974,7 @@ function serialize(s) {
 function saveErrorMessage(e) {
   const code = e && e.code;
   const msg = str(e && e.message);
+  if (code === 'edit_locked' || (code === '42501' && editing && !isAdmin)) return 'Nuk u ruajt: raporti mund të ndryshohet vetëm ditën që është shkruar. Për ndryshime të mëvonshme fol me administratorin.';
   if (code === '42501' || code === 'not_allowed') return 'Nuk u ruajt: llogaria jote nuk lejohet ta bëjë këtë. Fol me administratorin.';
   if (code === '23514') return 'Nuk u ruajt: disa vlera janë jashtë kufijve (p.sh. orët). Kontrollo formularin.';
   if (code === 'PGRST301' || /jwt/i.test(msg)) return 'Seanca ka skaduar. Dil dhe hyr sërish.';
@@ -995,7 +997,7 @@ async function submit() {
     if (editing) {
       const {data, error} = await sb.from('reports').update(payload).eq('id', editing.id).select('id').maybeSingle();
       if (error) throw error;
-      if (!data) throw {code: 'not_allowed'};
+      if (!data) throw {code: isAdmin ? 'not_allowed' : 'edit_locked'};
     } else {
       pendingId = pendingId || uuid();
       const {error} = await sb.from('reports').insert({...payload, id: pendingId});
@@ -1177,7 +1179,8 @@ function filtered() {
     && (!filt.problems || r.problem === 'yes')
     && (!q || haystack(r).includes(q)));
 }
-const canManage = r => !!me && (isAdmin || r._uid === me.user_id);
+// A worker may change his own report only on the report's own day; the database enforces the same rule.
+const canManage = r => !!me && (isAdmin || (r._uid === me.user_id && r.date === todayISO()));
 
 function barsHTML(title, map) {
   const rows = [...map.values()].filter(r => r.m > 0).sort((a, b) => b.m - a.m).slice(0, 8);
@@ -1212,6 +1215,7 @@ function repHTML(r) {
         <button type="button" class="btn sm" data-act="copy">Kopjo</button>
         ${isAdmin ? '<button type="button" class="btn sm" data-act="pdf">PDF</button>' : ''}
         ${can ? '<button type="button" class="btn sm" data-act="edit">Ndrysho</button>' : ''}
+        ${!can && !isAdmin && me && r._uid === me.user_id ? '<span class="note">I mbyllur: raporti ndryshohet vetëm ditën që është shkruar.</span>' : ''}
         ${isAdmin ? (confirming
           ? '<span class="confirm">Fshije përgjithmonë? <button type="button" class="btn sm danger" data-act="del-yes">Po, fshije</button><button type="button" class="btn sm ghost" data-act="del-no">Anulo</button></span>'
           : '<button type="button" class="btn sm ghost danger-text" data-act="del">Fshije</button>') : ''}
