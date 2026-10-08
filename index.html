@@ -245,6 +245,8 @@ input::placeholder,textarea::placeholder{color:var(--muted);opacity:.75}
 .missing{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:12px 18px;margin-bottom:14px;font-size:14px;display:flex;flex-wrap:wrap;gap:6px 8px;align-items:center}
 .missing b{margin-right:4px}
 .missing.done{color:var(--ok)}
+.chip-btn{cursor:pointer;font:inherit;font-size:12px;font-weight:600;color:var(--ink)}
+.chip-btn:hover{border-color:var(--accent);color:var(--accent)}
 
 .day{margin-bottom:22px}
 .day-h{display:flex;justify-content:space-between;align-items:baseline;gap:10px;flex-wrap:wrap;padding:0 4px 8px;border-bottom:2px solid var(--ink);margin-bottom:0}
@@ -406,7 +408,11 @@ input::placeholder,textarea::placeholder{color:var(--muted);opacity:.75}
           </div>
           <div class="grid2">
             <div class="field"><label for="date-input">Data</label><input type="date" id="date-input"></div>
-            <div class="field"><label for="worker">Përgjegjësi</label><input id="worker" readonly tabindex="-1"></div>
+            <div class="field">
+              <label for="worker" id="worker-label">Përgjegjësi</label>
+              <input id="worker" readonly tabindex="-1">
+              <select id="for-user" hidden><option value="">Zgjidh punëtorin</option></select>
+            </div>
           </div>
           <div id="entries"></div>
           <button type="button" class="add" id="add-entry">+ Shto një punë tjetër (projekt tjetër)</button>
@@ -657,11 +663,16 @@ let CATEGORIES = {
 };
 const catLabel = c => (CATEGORIES[c] ? CATEGORIES[c].label : '');
 const catPanel = c => (CATEGORIES[c] ? CATEGORIES[c].panel || `Paneli: ${CATEGORIES[c].label}` : '');
+// `forUser` is the worker an admin is writing the report for (empty for a worker's own report).
 const freshState = (keep = {}) => ({
-  date: keep.date || todayISO(), worker: keep.worker || '', category: keep.category || '',
+  date: keep.date || todayISO(), worker: keep.worker || '', category: keep.category || '', forUser: keep.forUser || '',
   entries: [{...blankEntry(), from: DAY_FROM, to: DAY_TO}], pause: DAY_PAUSE,
   problem: '', prob: blankProb()
 });
+// A new empty report: a worker's own, or (admin) one waiting for the admin to pick the worker.
+const newState = date => (isAdmin
+  ? freshState({date})
+  : freshState({date, worker: me ? me.name : '', category: me ? me.category : ''}));
 
 function normalizeState(s) {
   s = s && typeof s === 'object' ? s : {};
@@ -669,6 +680,7 @@ function normalizeState(s) {
   out.date = isISO(s.date) ? s.date : todayISO();
   out.worker = str(s.worker);
   out.category = /^[a-z0-9_]{1,40}$/.test(str(s.category)) ? s.category : '';
+  out.forUser = str(s.forUser);
   out.entries = (Array.isArray(s.entries) && s.entries.length ? s.entries : [{}]).map(e => { const b = blankEntry(); for (const k in b) b[k] = str(e && e[k]); return b; });
   const pz = Number(s.pause);
   out.pause = s.pause == null || s.pause === '' ? 0 : PAUSES.includes(pz) ? pz : DAY_PAUSE; // reports saved before breaks existed have none
@@ -808,6 +820,32 @@ function entryHTML(e, i, n) {
     </div>
   </div>`;
 }
+// Admin: the people a report can be written for (active workers first, then the admin himself).
+function fillForUser() {
+  if (!isAdmin || !me) return;
+  const sel = $('#for-user');
+  const cur = state.forUser;
+  const list = members.filter(m => m.active)
+    .sort((a, b) => (a.role === b.role ? 0 : a.role === 'worker' ? -1 : 1) || collator.compare(a.name, b.name));
+  sel.innerHTML = '<option value="">Zgjidh punëtorin</option>' + list.map(m =>
+    `<option value="${esc(m.user_id)}">${esc(m.name)}${m.user_id === me.user_id ? ' (ti)' : m.category ? ' · ' + esc(catLabel(m.category)) : ''}</option>`).join('');
+  // When editing, the report's owner may since have been deactivated; keep him selectable.
+  if (cur && !list.some(m => m.user_id === cur)) sel.insertAdjacentHTML('beforeend', `<option value="${esc(cur)}">${esc(state.worker || 'Punëtor')}</option>`);
+  sel.value = cur || '';
+  const m = members.find(x => x.user_id === cur);
+  if (m && !editing) { state.worker = m.name; state.category = m.category || ''; }
+}
+// Admin: open an empty report for one worker (e.g. from "Pa raport sot").
+function startNewFor(uid) {
+  if (!isAdmin) return;
+  editing = null; errorsShown = false; pendingId = null;
+  state = newState(todayISO());
+  state.forUser = uid;
+  showErrors([]);
+  $('#saved').hidden = true;
+  renderForm(); refresh(); scheduleDraft();
+  showView('form');
+}
 function renderEntries() { $('#entries').innerHTML = state.entries.map((e, i) => entryHTML(e, i, state.entries.length)).join(''); }
 function syncProblem() {
   $('#problem-none').checked = state.problem === 'none';
@@ -818,6 +856,11 @@ function renderForm() {
   $('#date-input').value = state.date;
   $('#date-input').disabled = !!editing && !isAdmin; // a worker's edit stays on the report's own day
   $('#worker').value = state.worker;
+  // Admin picks whom the report is for; a worker's name is fixed to his own.
+  $('#worker').hidden = isAdmin;
+  $('#for-user').hidden = !isAdmin;
+  $('#worker-label').htmlFor = isAdmin ? 'for-user' : 'worker';
+  if (isAdmin) { fillForUser(); $('#for-user').disabled = !!editing; }
   renderEntries();
   $('#pause').value = String(state.pause);
   syncProblem();
@@ -868,6 +911,12 @@ function onInput(ev) {
   else if (t.id === 'pause') state.pause = Number(t.value) || 0;
   else if (t.name === 'problem') { state.problem = t.value; syncProblem(); }
   else if (t.id === 'date-input') state.date = t.value;
+  else if (t.id === 'for-user') {
+    state.forUser = t.value;
+    const m = members.find(x => x.user_id === t.value);
+    state.worker = m ? m.name : '';
+    state.category = m ? m.category || '' : '';
+  }
   else return;
   $('#saved').hidden = true;
   refresh();
@@ -904,7 +953,7 @@ function resetForm() {
   editing = null;
   errorsShown = false;
   pendingId = null;
-  state = freshState({worker: me ? me.name : '', category: me ? me.category : ''});
+  state = newState();
   clearDraft();
   showErrors([]);
   renderForm(); refresh();
@@ -915,6 +964,7 @@ $('#cancel-edit').addEventListener('click', () => { resetForm(); toast('Ndryshim
 function validate() {
   const bad = [];
   if (!isISO(state.date)) bad.push(['date-input', 'Data']);
+  if (isAdmin && !editing && !state.forUser) bad.push(['for-user', 'Përgjegjësi: zgjidh punëtorin']);
   const multi = state.entries.length > 1;
   state.entries.forEach((e, i) => {
     const s = multi ? ` (Puna ${i + 1})` : '';
@@ -1000,14 +1050,17 @@ async function submit() {
       if (!data) throw {code: isAdmin ? 'not_allowed' : 'edit_locked'};
     } else {
       pendingId = pendingId || uuid();
-      const {error} = await sb.from('reports').insert({...payload, id: pendingId});
+      const row = {...payload, id: pendingId};
+      if (isAdmin && state.forUser) row.user_id = state.forUser; // the admin writes it in the worker's name
+      const {error} = await sb.from('reports').insert(row);
       if (error && error.code !== '23505') throw error; // 23505: an earlier attempt already saved it
     }
     pendingId = null;
     const who = state.worker, when = fmtDate(state.date);
     editing = null;
     errorsShown = false;
-    state = freshState({worker: me.name, category: me.category});
+    // The admin often enters several workers for the same day, so the date stays.
+    state = newState(isAdmin ? state.date : undefined);
     clearDraft();
     showErrors([]);
     renderForm(); refresh();
@@ -1121,7 +1174,7 @@ function inRange(d) {
 const rowFromDb = r => ({
   id: r.id, _uid: r.user_id, _key: r.id, date: str(r.date).slice(0, 10), worker: str(r.worker),
   entries: r.entries, pause: r.pause_minutes,
-  totalMinutes: r.total_minutes, category: r.category,
+  totalMinutes: r.total_minutes, category: r.category, createdBy: r.created_by,
   problem: r.problem, prob: r.prob, createdAt: r.created_at
 });
 let loadSeq = 0;
@@ -1204,6 +1257,7 @@ function repHTML(r) {
         ${prob ? `<span class="rep-issue"><b>Problem:</b> ${esc(s.prob.issue || '—')}</span>` : ''}
       </span>
       <span class="rep-side">
+        ${r.createdBy && r.createdBy !== r._uid ? '<span class="chip">Shtuar nga admini</span>' : ''}
         ${ot ? `<span class="chip accent">+${esc(fmtHours(ot))} shtesë</span>` : ''}
         ${prob ? '<span class="chip bad">Problem</span>' : '<span class="chip ok">Pa probleme</span>'}
         <span class="rep-hrs">${tm ? fmtHours(tm) : '—'}</span>
@@ -1262,9 +1316,9 @@ function renderArchive() {
     const done = new Set(reports.filter(r => r.date === todayISO()).map(r => r._uid));
     const team = members.filter(m => m.active && m.role === 'worker' && (!filt.category || m.category === filt.category));
     if (team.length) {
-      const names = team.filter(m => !done.has(m.user_id)).map(m => m.name).sort(collator.compare);
-      missing = names.length
-        ? `<div class="missing"><b>Pa raport sot:</b>${names.map(n => `<span class="chip">${esc(n)}</span>`).join('')}</div>`
+      const miss = team.filter(m => !done.has(m.user_id)).sort((a, b) => collator.compare(a.name, b.name));
+      missing = miss.length
+        ? `<div class="missing"><b>Pa raport sot:</b>${miss.map(m => `<button type="button" class="chip chip-btn" data-new-for="${esc(m.user_id)}" title="Shkruaj raportin për ${esc(m.name)}">+ ${esc(m.name)}</button>`).join('')}<span class="note">Kliko një emër për t’i shkruar raportin.</span></div>`
         : '<div class="missing done"><b>Të gjithë punëtorët e kanë dërguar raportin sot.</b></div>';
     }
   }
@@ -1343,6 +1397,8 @@ $('#arch-list').addEventListener('toggle', e => {
   if (d.open) openIds.add(d.dataset.id); else openIds.delete(d.dataset.id);
 }, true);
 $('#view-archive').addEventListener('click', e => {
+  const nf = e.target.closest('[data-new-for]');
+  if (nf) { startNewFor(nf.dataset.newFor); return; }
   const go = e.target.closest('[data-go]');
   if (go) { showView(go.dataset.go); return; }
   if (e.target.closest('[data-show-all]')) {
@@ -1366,6 +1422,7 @@ $('#view-archive').addEventListener('click', e => {
 function startEdit(r) {
   state = normalizeState(JSON.parse(JSON.stringify(r)));
   editing = {id: r.id, uid: r._uid};
+  state.forUser = r._uid;
   errorsShown = false;
   pendingId = null;
   showErrors([]);
@@ -1686,6 +1743,7 @@ async function loadMembers() {
   if (error) { if (view === 'team') $('#team-list').innerHTML = emptyHTML('Nuk u ngarkuan', 'Kontrollo internetin dhe provo sërish.'); return; }
   members = data || [];
   renderTeam(); fillFilters(); fillDatalists();
+  fillForUser(); refresh();
   if (view === 'archive') renderArchive();
 }
 function memberHTML(m) {
@@ -1937,9 +1995,12 @@ async function enterApp(user) {
   if (saved && saved.state) {
     state = normalizeState(saved.state);
     editing = saved.editing && saved.editing.id ? saved.editing : null;
-    if (!editing) { state.worker = me.name; state.category = me.category || ''; if (!hasContent(state)) state.date = todayISO(); }
+    if (!editing) {
+      if (!isAdmin) { state.worker = me.name; state.category = me.category || ''; state.forUser = ''; }
+      if (!hasContent(state)) state.date = todayISO();
+    }
   } else {
-    state = freshState({worker: me.name, category: me.category});
+    state = newState();
     editing = null;
   }
   errorsShown = false;
