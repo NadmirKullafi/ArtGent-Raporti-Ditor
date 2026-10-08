@@ -144,6 +144,11 @@ input::placeholder,textarea::placeholder{color:var(--muted);opacity:.75}
 .reg-sum .label{font-weight:600;font-size:13.5px}
 .reg-sum .hrs{margin-left:0}
 .ot-sum{margin-left:0}
+.no-hours-check{align-self:flex-start;padding:4px 0}
+.no-hours-check input{accent-color:var(--accent)}
+/* "Pa orar": the report is sent without times, so their fields are hidden */
+#report-form.no-hours .time-row,
+#report-form.no-hours .hours-only{display:none}
 .add{border:1px dashed var(--line-strong);background:none;border-radius:8px;padding:11px 14px;font-weight:600;color:var(--accent);cursor:pointer;text-align:left}
 .add:hover{background:var(--accent-soft);border-color:var(--accent)}
 
@@ -414,9 +419,10 @@ input::placeholder,textarea::placeholder{color:var(--muted);opacity:.75}
               <select id="for-user" hidden><option value="">Zgjidh punëtorin</option></select>
             </div>
           </div>
+          <label class="check no-hours-check"><input type="checkbox" id="no-hours"> Pa orar <span class="opt">raporti dërgohet pa orët e punës</span></label>
           <div id="entries"></div>
           <button type="button" class="add" id="add-entry">+ Shto një punë tjetër (projekt tjetër)</button>
-          <div class="pause-row">
+          <div class="pause-row hours-only">
             <div class="field">
               <label for="pause">Pushimi <span class="opt">zbritet nga orët</span></label>
               <select id="pause">
@@ -430,7 +436,7 @@ input::placeholder,textarea::placeholder{color:var(--muted);opacity:.75}
             <div class="reg-sum"><span class="label">Orë pune</span><output class="hrs" id="reg-total">0 orë</output></div>
             <div class="reg-sum ot-sum"><span class="label">Orë shtesë (pas 17:00)</span><output class="hrs" id="ot-total">0 orë</output></div>
           </div>
-          <p class="note">Orari i rregullt: 08:00–17:00 me 1 orë pushim = 8 orë pune. Çdo orë pas 17:00 llogaritet automatikisht si orë shtesë.</p>
+          <p class="note hours-only">Orari i rregullt: 08:00–17:00 me 1 orë pushim = 8 orë pune. Çdo orë pas 17:00 llogaritet automatikisht si orë shtesë.</p>
         </section>
 
         <section class="sec" aria-labelledby="h-prob">
@@ -666,7 +672,7 @@ const catPanel = c => (CATEGORIES[c] ? CATEGORIES[c].panel || `Paneli: ${CATEGOR
 // `forUser` is the worker an admin is writing the report for (empty for a worker's own report).
 const freshState = (keep = {}) => ({
   date: keep.date || todayISO(), worker: keep.worker || '', category: keep.category || '', forUser: keep.forUser || '',
-  entries: [{...blankEntry(), from: DAY_FROM, to: DAY_TO}], pause: DAY_PAUSE,
+  entries: [{...blankEntry(), from: DAY_FROM, to: DAY_TO}], pause: DAY_PAUSE, noHours: false,
   problem: '', prob: blankProb()
 });
 // A new empty report: a worker's own, or (admin) one waiting for the admin to pick the worker.
@@ -681,6 +687,7 @@ function normalizeState(s) {
   out.worker = str(s.worker);
   out.category = /^[a-z0-9_]{1,40}$/.test(str(s.category)) ? s.category : '';
   out.forUser = str(s.forUser);
+  out.noHours = s.noHours === true;
   out.entries = (Array.isArray(s.entries) && s.entries.length ? s.entries : [{}]).map(e => { const b = blankEntry(); for (const k in b) b[k] = str(e && e[k]); return b; });
   const pz = Number(s.pause);
   out.pause = s.pause == null || s.pause === '' ? 0 : PAUSES.includes(pz) ? pz : DAY_PAUSE; // reports saved before breaks existed have none
@@ -715,9 +722,10 @@ function mergedIntervals(entries) {
   });
   return out;
 }
-const grossMinutes = s => s.entries.reduce((a, e) => a + entryMinutes(e), 0);
+// A report sent "Pa orar" has no hours at all.
+const grossMinutes = s => (s.noHours ? 0 : s.entries.reduce((a, e) => a + entryMinutes(e), 0));
 // Overtime: every minute worked after 17:00.
-const overtimeMinutes = s => mergedIntervals(s.entries).reduce((sum, [a, b]) => sum + Math.max(0, b - Math.max(a, toMin(DAY_TO))), 0);
+const overtimeMinutes = s => (s.noHours ? 0 : mergedIntervals(s.entries).reduce((sum, [a, b]) => sum + Math.max(0, b - Math.max(a, toMin(DAY_TO))), 0));
 const regularGross = s => Math.max(0, grossMinutes(s) - overtimeMinutes(s));
 // The break comes off regular hours, only where the listed times do not already leave it out.
 const pauseApplied = s => Math.max(0, Math.min(s.pause || 0, regularGross(s)) - gapMinutes(s.entries));
@@ -725,7 +733,7 @@ const regularMinutes = s => Math.max(0, regularGross(s) - pauseApplied(s));
 const totalMinutes = s => regularMinutes(s) + overtimeMinutes(s);
 // Hours per project (overtime included in its job); the break comes off the longest job.
 function projectMinutes(s) {
-  const out = s.entries.map(e => ({name: e.project.trim() || 'Pa projekt', m: entryMinutes(e)}));
+  const out = s.entries.map(e => ({name: e.project.trim() || 'Pa projekt', m: s.noHours ? 0 : entryMinutes(e)}));
   const p = pauseApplied(s);
   if (p && out.length) { const i = out.reduce((bi, x, j) => (x.m > out[bi].m ? j : bi), 0); out[i].m = Math.max(0, out[i].m - p); }
   return out;
@@ -764,16 +772,21 @@ function buildLines(s) {
     if (multi) { L.push({gap: 1}); L.push({sub: `Puna ${i + 1}`}); }
     L.push({k: 'Projekti', v: e.project.trim()});
     L.push({k: 'Çfarë realizova sot', v: e.done.trim()});
+    if (s.noHours) return;
     const m = entryMinutes(e);
     L.push({k: 'Ora', v: e.from && e.to ? `${e.from} – ${e.to}${multi && m ? ` (${fmtHours(m)})` : ''}` : '', blankV: `${e.from || '__'} – ${e.to || '__'}`});
   });
   if (multi) L.push({gap: 1});
+  if (s.noHours) {
+    L.push({k: 'Orari', v: 'pa orar', strong: 1});
+  } else {
   L.push({k: 'Pushimi', v: s.pause ? fmtHours(s.pause) : 'pa pushim'});
   const reg = regularMinutes(s), ot = overtimeMinutes(s);
   L.push({k: 'Orë pune', v: reg ? fmtHours(reg) : '', blankV: '__ orë'});
   if (ot) L.push({k: 'Orë shtesë (pas 17:00)', v: fmtHours(ot)});
   const tm = totalMinutes(s);
   L.push({k: 'Totali i ditës', v: tm ? fmtHours(tm) : '', blankV: '__ orë', strong: 1});
+  }
   L.push({gap: 1});
   L.push({h: 'PROBLEMATIKA'});
   L.push({t: `${s.problem === 'none' ? '☑' : '☐'} Nuk pati probleme`});
@@ -863,6 +876,8 @@ function renderForm() {
   if (isAdmin) { fillForUser(); $('#for-user').disabled = !!editing; }
   renderEntries();
   $('#pause').value = String(state.pause);
+  $('#no-hours').checked = state.noHours;
+  form.classList.toggle('no-hours', state.noHours);
   syncProblem();
   $$('[data-p]').forEach(el => { el.value = state.prob[el.dataset.p] || ''; });
   $('#edit-banner').hidden = !editing;
@@ -873,8 +888,8 @@ function refresh() {
   $('#ticket-lines').innerHTML = linesHTML(buildLines(state).slice(1));
   $('#t-date').textContent = fmtLongDate(state.date);
   const tm = totalMinutes(state), reg = regularMinutes(state);
-  $('#mbar-total').textContent = fmtHours(tm);
-  $('#sec-total').textContent = fmtHours(tm);
+  $('#mbar-total').textContent = state.noHours ? 'pa orar' : fmtHours(tm);
+  $('#sec-total').textContent = state.noHours ? 'pa orar' : fmtHours(tm);
   $('#reg-total').textContent = fmtHours(reg);
   $('#ot-total').textContent = fmtHours(overtimeMinutes(state));
   state.entries.forEach((e, i) => {
@@ -909,6 +924,7 @@ function onInput(ev) {
   if (t.dataset.e !== undefined) state.entries[+t.dataset.e][t.dataset.k] = t.value;
   else if (t.dataset.p) state.prob[t.dataset.p] = t.value;
   else if (t.id === 'pause') state.pause = Number(t.value) || 0;
+  else if (t.id === 'no-hours') { state.noHours = t.checked; form.classList.toggle('no-hours', state.noHours); }
   else if (t.name === 'problem') { state.problem = t.value; syncProblem(); }
   else if (t.id === 'date-input') state.date = t.value;
   else if (t.id === 'for-user') {
@@ -970,6 +986,7 @@ function validate() {
     const s = multi ? ` (Puna ${i + 1})` : '';
     if (!e.project.trim()) bad.push([`e-${i}-project`, 'Projekti' + s]);
     if (!e.done.trim()) bad.push([`e-${i}-done`, 'Çfarë realizova sot' + s]);
+    if (state.noHours) return; // "Pa orar": no times to check
     if (!e.from) bad.push([`e-${i}-from`, 'Ora e fillimit' + s]);
     if (!e.to) bad.push([`e-${i}-to`, 'Ora e mbarimit' + s]);
     else if (e.from && !entryMinutes(e)) bad.push([`e-${i}-to`, 'Ora e mbarimit duhet të jetë pas fillimit' + s]);
@@ -1003,13 +1020,15 @@ $('#errbox').addEventListener('click', e => {
 /* ---------- save ---------- */
 function serialize(s) {
   const entries = s.entries.map(e => ({
-    project: e.project.trim(), done: e.done.trim(), from: e.from, to: e.to, minutes: entryMinutes(e)
+    project: e.project.trim(), done: e.done.trim(),
+    from: s.noHours ? '' : e.from, to: s.noHours ? '' : e.to, minutes: s.noHours ? 0 : entryMinutes(e)
   }));
   const ot = overtimeMinutes(s);
   return {
     date: s.date,
     entries,
-    pause_minutes: s.pause || 0,
+    no_hours: !!s.noHours,
+    pause_minutes: s.noHours ? 0 : s.pause || 0,
     regular_minutes: regularMinutes(s),
     had_overtime: ot > 0,
     overtime: [],
@@ -1174,7 +1193,7 @@ function inRange(d) {
 const rowFromDb = r => ({
   id: r.id, _uid: r.user_id, _key: r.id, date: str(r.date).slice(0, 10), worker: str(r.worker),
   entries: r.entries, pause: r.pause_minutes,
-  totalMinutes: r.total_minutes, category: r.category, createdBy: r.created_by,
+  totalMinutes: r.total_minutes, category: r.category, createdBy: r.created_by, noHours: r.no_hours === true,
   problem: r.problem, prob: r.prob, createdAt: r.created_at
 });
 let loadSeq = 0;
@@ -1258,6 +1277,7 @@ function repHTML(r) {
       </span>
       <span class="rep-side">
         ${r.createdBy && r.createdBy !== r._uid ? '<span class="chip">Shtuar nga admini</span>' : ''}
+        ${s.noHours ? '<span class="chip">Pa orar</span>' : ''}
         ${ot ? `<span class="chip accent">+${esc(fmtHours(ot))} shtesë</span>` : ''}
         ${prob ? '<span class="chip bad">Problem</span>' : '<span class="chip ok">Pa probleme</span>'}
         <span class="rep-hrs">${tm ? fmtHours(tm) : '—'}</span>
@@ -1468,7 +1488,8 @@ $('#export-btn').addEventListener('click', () => {
     const prob = s.problem === 'yes' ? ['Po', s.prob.project, s.prob.issue, s.prob.missing, s.prob.solution] : ['Jo', '', '', '', ''];
     s.entries.forEach((e, i) => {
       const first = i === 0;
-      lines.push([fmtDate(s.date), s.worker, catLabel(s.category), e.project, e.done, e.from, e.to, dec(entryMinutes(e) / 60),
+      lines.push([fmtDate(s.date), s.worker, catLabel(s.category), e.project, e.done,
+        s.noHours ? 'pa orar' : e.from, s.noHours ? '' : e.to, dec(s.noHours ? 0 : entryMinutes(e) / 60),
         ...(first ? day : ['', '', '', '']), ...(first ? prob : ['', '', '', '', ''])].map(csvCell).join(';'));
     });
   });
