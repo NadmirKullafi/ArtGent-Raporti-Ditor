@@ -434,9 +434,9 @@ input::placeholder,textarea::placeholder{color:var(--muted);opacity:.75}
               </select>
             </div>
             <div class="reg-sum"><span class="label">Orë pune</span><output class="hrs" id="reg-total">0 orë</output></div>
-            <div class="reg-sum ot-sum"><span class="label">Orë shtesë (pas 17:00)</span><output class="hrs" id="ot-total">0 orë</output></div>
+            <div class="reg-sum ot-sum"><span class="label">Orë shtesë (mbi 8 orë)</span><output class="hrs" id="ot-total">0 orë</output></div>
           </div>
-          <p class="note hours-only">Orari i rregullt: 08:00–17:00 me 1 orë pushim = 8 orë pune. Çdo orë pas 17:00 llogaritet automatikisht si orë shtesë.</p>
+          <p class="note hours-only">Orari i rregullt: 08:00–17:00 me 1 orë pushim = 8 orë pune. Orët shtesë llogariten automatikisht vetëm pasi plotësohen 8 orë pune në ditë.</p>
         </section>
 
         <section class="sec" aria-labelledby="h-prob">
@@ -724,13 +724,15 @@ function mergedIntervals(entries) {
 }
 // A report sent "Pa orar" has no hours at all.
 const grossMinutes = s => (s.noHours ? 0 : s.entries.reduce((a, e) => a + entryMinutes(e), 0));
-// Overtime: every minute worked after 17:00.
-const overtimeMinutes = s => (s.noHours ? 0 : mergedIntervals(s.entries).reduce((sum, [a, b]) => sum + Math.max(0, b - Math.max(a, toMin(DAY_TO))), 0));
-const regularGross = s => Math.max(0, grossMinutes(s) - overtimeMinutes(s));
-// The break comes off regular hours, only where the listed times do not already leave it out.
-const pauseApplied = s => Math.max(0, Math.min(s.pause || 0, regularGross(s)) - gapMinutes(s.entries));
-const regularMinutes = s => Math.max(0, regularGross(s) - pauseApplied(s));
-const totalMinutes = s => regularMinutes(s) + overtimeMinutes(s);
+// Minutes worked after 17:00: the day's break does not come off these.
+const afterDayMinutes = s => (s.noHours ? 0 : mergedIntervals(s.entries).reduce((sum, [a, b]) => sum + Math.max(0, b - Math.max(a, toMin(DAY_TO))), 0));
+const dayGross = s => Math.max(0, grossMinutes(s) - afterDayMinutes(s));
+// The break comes off the working day, only where the listed times do not already leave it out.
+const pauseApplied = s => Math.max(0, Math.min(s.pause || 0, dayGross(s)) - gapMinutes(s.entries));
+const totalMinutes = s => Math.max(0, dayGross(s) - pauseApplied(s)) + afterDayMinutes(s);
+// The first 8 hours worked are regular, whatever the time of day; overtime is only what goes past them.
+const regularMinutes = s => Math.min(totalMinutes(s), DAY_MINUTES);
+const overtimeMinutes = s => Math.max(0, totalMinutes(s) - DAY_MINUTES);
 // Hours per project (overtime included in its job); the break comes off the longest job.
 function projectMinutes(s) {
   const out = s.entries.map(e => ({name: e.project.trim() || 'Pa projekt', m: s.noHours ? 0 : entryMinutes(e)}));
@@ -783,7 +785,7 @@ function buildLines(s) {
   L.push({k: 'Pushimi', v: s.pause ? fmtHours(s.pause) : 'pa pushim'});
   const reg = regularMinutes(s), ot = overtimeMinutes(s);
   L.push({k: 'Orë pune', v: reg ? fmtHours(reg) : '', blankV: '__ orë'});
-  if (ot) L.push({k: 'Orë shtesë (pas 17:00)', v: fmtHours(ot)});
+  if (ot) L.push({k: 'Orë shtesë (mbi 8 orë)', v: fmtHours(ot)});
   const tm = totalMinutes(s);
   L.push({k: 'Totali i ditës', v: tm ? fmtHours(tm) : '', blankV: '__ orë', strong: 1});
   }
